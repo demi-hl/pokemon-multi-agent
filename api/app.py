@@ -2,6 +2,8 @@
 Flask API for Pokemon TCG Set Database UI.
 Run from project root: flask --app api.app run  (or python -m api.app)
 """
+import os
+import json
 from flask import Flask, jsonify, request
 
 from market.prices import (
@@ -374,6 +376,226 @@ def create_app() -> Flask:
             "remaining": remaining,
             "autonomy_level": settings["autonomy_level"] if settings else 0
         })
+
+    # ===== Assistant Endpoint (Claude AI) =====
+
+    @app.route("/api/assistant/chat", methods=["POST"])
+    def assistant_chat():
+        """POST /api/assistant/chat - Chat with Claude AI assistant.
+        Body: {message: "...", history: [{role, content}, ...]}
+        """
+        data = request.get_json() or {}
+        message = data.get("message", "").strip()
+        history = data.get("history", [])
+
+        if not message:
+            return jsonify({"error": "message is required"}), 400
+
+        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            # Demo mode: return helpful response without Claude
+            return jsonify({
+                "response": _demo_response(message),
+                "tool_results": [],
+                "model": "demo",
+                "demo_mode": True,
+            })
+
+        try:
+            import anthropic
+
+            client = anthropic.Anthropic(api_key=api_key)
+
+            # Build tools for Claude
+            tools = [
+                {
+                    "name": "search_cards",
+                    "description": "Search for Pokemon TCG cards by name. Returns card names, sets, rarities, and prices.",
+                    "input_schema": {
+                        "type": "object",
+                        "properties": {
+                            "query": {"type": "string", "description": "Card name to search for"},
+                            "limit": {"type": "integer", "description": "Max results (default 5)", "default": 5},
+                        },
+                        "required": ["query"],
+                    },
+                },
+                {
+                    "name": "get_card_price",
+                    "description": "Get detailed pricing for a specific card by ID, including market, low, mid, and high prices.",
+                    "input_schema": {
+                        "type": "object",
+                        "properties": {
+                            "card_id": {"type": "string", "description": "The card ID (e.g. 'sv8-123')"},
+                        },
+                        "required": ["card_id"],
+                    },
+                },
+                {
+                    "name": "get_set_info",
+                    "description": "Get information about a Pokemon TCG set including total cards, release date, and value index.",
+                    "input_schema": {
+                        "type": "object",
+                        "properties": {
+                            "set_id": {"type": "string", "description": "Set ID or name"},
+                        },
+                        "required": ["set_id"],
+                    },
+                },
+                {
+                    "name": "grading_advice",
+                    "description": "Get grading cost estimate and ROI analysis for a card.",
+                    "input_schema": {
+                        "type": "object",
+                        "properties": {
+                            "card_value": {"type": "number", "description": "Current raw card value in dollars"},
+                            "estimated_grade": {"type": "number", "description": "Estimated PSA grade (1-10)"},
+                        },
+                        "required": ["card_value", "estimated_grade"],
+                    },
+                },
+            ]
+
+            # Build messages
+            msgs = [{"role": "user" if m.get("role") == "user" else "assistant", "content": m.get("content", "")}
+                    for m in history[-10:]]  # last 10 messages for context
+            msgs.append({"role": "user", "content": message})
+
+            system_prompt = (
+                "You are PokeAgent, an expert Pokemon TCG market analyst and advisor. "
+                "You help users with card pricing, investment advice, grading decisions, "
+                "set analysis, and market trends. Use the available tools to look up real "
+                "card data when users ask about specific cards or sets. Be concise, data-driven, "
+                "and actionable. Format prices as dollars. Use bold for emphasis."
+            )
+
+            response = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=1024,
+                system=system_prompt,
+                tools=tools,
+                messages=msgs,
+            )
+
+            # Process tool calls
+            tool_results = []
+            final_text = ""
+
+            for block in response.content:
+                if block.type == "text":
+                    final_text += block.text
+                elif block.type == "tool_use":
+                    result = _execute_tool(block.name, block.input)
+                    tool_results.append({"tool": block.name, "input": block.input, "result": result})
+
+            # If there were tool calls, make a follow-up request
+            if tool_results and response.stop_reason == "tool_use":
+                follow_up_msgs = msgs + [{"role": "assistant", "content": response.content}]
+                tool_result_content = []
+                for block in response.content:
+                    if block.type == "tool_use":
+                        result = _execute_tool(block.name, block.input)
+                        tool_result_content.append({
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "content": json.dumps(result),
+                        })
+                follow_up_msgs.append({"role": "user", "content": tool_result_content})
+
+                follow_up = client.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=1024,
+                    system=system_prompt,
+                    tools=tools,
+                    messages=follow_up_msgs,
+                )
+
+                final_text = ""
+                for block in follow_up.content:
+                    if block.type == "text":
+                        final_text += block.text
+
+            return jsonify({
+                "response": final_text or "I couldn't generate a response. Please try again.",
+                "tool_results": tool_results,
+                "model": "claude-sonnet-4-20250514",
+                "demo_mode": False,
+            })
+
+        except ImportError:
+            return jsonify({
+                "response": _demo_response(message),
+                "tool_results": [],
+                "model": "demo",
+                "demo_mode": True,
+            })
+        except Exception as e:
+            return jsonify({
+                "response": f"I encountered an error processing your request. Please try again.\n\nError: {str(e)[:200]}",
+                "tool_results": [],
+                "model": "error",
+                "demo_mode": True,
+            }), 500
+
+    def _execute_tool(name: str, inputs: dict):
+        """Execute a tool call and return the result."""
+        try:
+            if name == "search_cards":
+                results = search_cards(inputs["query"], limit=inputs.get("limit", 5))
+                return {"cards": results[:5]}
+            elif name == "get_card_price":
+                card = get_card_by_id(inputs["card_id"])
+                if card:
+                    return {"card": card}
+                return {"error": "Card not found"}
+            elif name == "get_set_info":
+                resolved = resolve_set_id(inputs["set_id"])
+                if resolved:
+                    s = get_set(resolved)
+                    return {"set": s} if s else {"error": "Set not found"}
+                return {"error": "Set not found"}
+            elif name == "grading_advice":
+                result = get_grading_cost_estimate(inputs["card_value"], inputs["estimated_grade"])
+                return result
+            return {"error": f"Unknown tool: {name}"}
+        except Exception as e:
+            return {"error": str(e)[:200]}
+
+    def _demo_response(message: str) -> str:
+        """Generate a helpful response without Claude API."""
+        q = message.lower()
+        if any(w in q for w in ["best set", "invest", "buy"]):
+            return ("**Top sets to consider right now:**\n\n"
+                    "1. **Prismatic Evolutions** — Eeveelution SARs driving massive demand\n"
+                    "2. **Surging Sparks** — Strong chase cards with good pull rates\n"
+                    "3. **Evolving Skies** — Sealed product continues climbing\n\n"
+                    "*Running in demo mode. Set ANTHROPIC_API_KEY for full AI capabilities.*")
+        if any(w in q for w in ["grade", "raw", "psa"]):
+            return ("**Grading rules of thumb:**\n\n"
+                    "- Grade cards worth **$50+ raw** in NM condition\n"
+                    "- PSA 10 multipliers: typically 2-4x raw price\n"
+                    "- Cards under $30 raw: sell raw after grading fees\n"
+                    "- Use the **Flip Calculator** for exact ROI\n\n"
+                    "*Running in demo mode. Set ANTHROPIC_API_KEY for full AI capabilities.*")
+        if any(w in q for w in ["chase", "top card", "expensive"]):
+            return ("**Current top chase cards:**\n\n"
+                    "1. **Umbreon VMAX Alt Art** (Evolving Skies) — $350+\n"
+                    "2. **Charizard ex SAR** (Obsidian Flames) — $195\n"
+                    "3. **Pikachu ex SAR** (Prismatic Evolutions) — $180\n\n"
+                    "*Running in demo mode. Set ANTHROPIC_API_KEY for full AI capabilities.*")
+        if any(w in q for w in ["trend", "market", "news"]):
+            return ("**Current market trends:**\n\n"
+                    "- Modern sealed appreciating 10-20% monthly\n"
+                    "- PSA turnaround improving → more submissions\n"
+                    "- Japanese products gaining western market share\n"
+                    "- Vintage Base Set: steady growth\n\n"
+                    "*Running in demo mode. Set ANTHROPIC_API_KEY for full AI capabilities.*")
+        return ("I can help with Pokemon TCG questions about:\n"
+                "- **Card Pricing** — current values and trends\n"
+                "- **Investing** — best sets and products\n"
+                "- **Grading** — grade vs sell raw analysis\n"
+                "- **Market Trends** — latest news\n\n"
+                "*Running in demo mode. Set ANTHROPIC_API_KEY for full AI capabilities.*")
 
     # ===== Stats Endpoints =====
 
