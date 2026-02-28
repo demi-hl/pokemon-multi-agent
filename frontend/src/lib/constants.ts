@@ -60,6 +60,18 @@ export const GRADED_CHART_COLORS: Record<string, string> = {
   bgs10: '#a855f7',
 } as const
 
+/* ── Product MSRP reference ── */
+export const PRODUCT_MSRP = {
+  pack: 4.49,
+  boosterBox: 143.64,
+  etb: 49.99,
+  boosterBundle: 29.99,
+  buildBattle: 14.99,
+  blister3: 14.99,
+  collectionBox: 24.99,
+  ultraPremium: 119.99,
+} as const
+
 export const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: 'LayoutDashboard' },
   { path: '/stock', label: 'Stock Finder', icon: 'Search' },
@@ -68,6 +80,8 @@ export const NAV_ITEMS = [
   { path: '/drops', label: 'Drops Intel', icon: 'Flame' },
   { path: '/monitors', label: 'Monitors', icon: 'Bell' },
   { path: '/flip', label: 'Flip Calculator', icon: 'Calculator' },
+  { path: '/pack-ev', label: 'Pack EV', icon: 'TrendingUp' },
+  { path: '/sealed', label: 'Sealed Tracker', icon: 'Lock' },
   { path: '/grading', label: 'AI Grading', icon: 'Sparkles' },
   { path: '/assistant', label: 'AI Assistant', icon: 'MessageSquare' },
   { path: '/portfolio', label: 'Portfolio', icon: 'PieChart' },

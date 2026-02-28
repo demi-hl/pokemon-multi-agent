@@ -4,7 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import type { AddCollectionBody, CreateAlertBody, AgentSettings } from '@/lib/api'
+import type { AddCollectionBody, CreateAlertBody, AgentSettings, ChatMessage } from '@/lib/api'
 
 /* ── Sets ── */
 export function useSets(series?: string) {
@@ -184,5 +184,13 @@ export function useHealth() {
     queryFn: () => api.health(),
     staleTime: 30_000,
     retry: 2,
+  })
+}
+
+/* ── Assistant ── */
+export function useAssistantChat() {
+  return useMutation({
+    mutationFn: ({ message, history }: { message: string; history: ChatMessage[] }) =>
+      api.assistant.chat(message, history),
   })
 }

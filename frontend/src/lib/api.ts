@@ -131,6 +131,15 @@ export const api = {
       ),
   },
 
+  /* ── Assistant ── */
+  assistant: {
+    chat: (message: string, history: ChatMessage[]) =>
+      request<AssistantResponse>('/assistant/chat', {
+        method: 'POST',
+        body: JSON.stringify({ message, history }),
+      }),
+  },
+
   /* ── Stats ── */
   stats: () => request<{ collections: Record<string, unknown>; alerts: Record<string, unknown> }>('/stats'),
 }
@@ -318,4 +327,16 @@ export interface AgentSettings {
   notification_discord: boolean
   notification_telegram: boolean
   [key: string]: unknown
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface AssistantResponse {
+  response: string
+  tool_results?: Record<string, unknown>[]
+  model?: string
+  demo_mode?: boolean
 }
