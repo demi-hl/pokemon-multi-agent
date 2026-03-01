@@ -167,25 +167,28 @@ def send_to_all_clients(event_type: str, data: dict):
         "data": data,
         "timestamp": datetime.now().isoformat(),
     }
-    
-    # Store in history
+
+    # Store in history (bounded deque would be better, but keep list for compat)
     if event_type == "alert":
         alert_history.insert(0, message)
-        if len(alert_history) > 100:
-            alert_history.pop()
-    
-    # Send to all clients
-    dead_clients = []
-    for client_queue in live_clients:
+        # Trim in bulk to avoid repeated pops
+        if len(alert_history) > 120:
+            del alert_history[100:]
+
+    # Send to all clients, collect dead ones by index for fast removal
+    dead_indices = []
+    for i, client_queue in enumerate(live_clients):
         try:
             client_queue.put_nowait(message)
-        except:
-            dead_clients.append(client_queue)
-    
-    # Remove dead clients
-    for dead in dead_clients:
-        if dead in live_clients:
-            live_clients.remove(dead)
+        except Exception:
+            dead_indices.append(i)
+
+    # Remove dead clients in reverse order so indices stay valid
+    for i in reversed(dead_indices):
+        try:
+            live_clients.pop(i)
+        except IndexError:
+            pass
 
 
 def format_sse(data: dict, event: str = None) -> str:
@@ -868,24 +871,30 @@ def grading_standards():
 @app.post("/grader/batch")
 def batch_grading():
     """
-    Grade multiple cards at once.
-    
+    Grade multiple cards at once (parallel).
+
     Accepts:
     - cards: Array of {image_url, image_base64, raw_value, card_name}
-    
+
     Returns array of grading results.
     """
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     payload = request.get_json(force=True) or {}
     cards = payload.get("cards", [])
-    
-    results = []
+
     script = str((BASE_DIR / "graders" / "visual_grading_agent.py").resolve())
-    
-    for i, card in enumerate(cards):
+
+    def _grade_one(index_card):
+        i, card = index_card
         card_result = run_cmd(["python3", script], stdin_json=card)
         card_result["index"] = i
-        results.append(card_result)
-    
+        return card_result
+
+    # Grade up to 4 cards in parallel (each is a subprocess)
+    with ThreadPoolExecutor(max_workers=min(4, len(cards) or 1)) as pool:
+        results = list(pool.map(_grade_one, enumerate(cards)))
+
     return jsonify({
         "success": True,
         "total_cards": len(cards),
@@ -1366,26 +1375,28 @@ def get_bgs_prices(card_name: str = None):
 @app.post("/prices/batch")
 def get_batch_prices():
     """
-    Get prices for multiple cards at once.
-    
+    Get prices for multiple cards at once (parallel).
+
     Input: {"cards": [{"name": "Charizard VMAX", "set": "..."}, ...]}
     """
     try:
+        from concurrent.futures import ThreadPoolExecutor
         from market.graded_prices import get_card_prices
-        
+
         payload = request.get_json(force=True) or {}
         cards = payload.get("cards", [])
         include_ebay = payload.get("include_ebay", False)
-        
-        results = []
-        for card in cards:
+
+        def _fetch_price(card):
             card_name = card.get("name", "")
             set_name = card.get("set", "")
-            
             if card_name:
-                prices = get_card_prices(card_name, set_name, include_ebay=include_ebay)
-                results.append(prices)
-        
+                return get_card_prices(card_name, set_name, include_ebay=include_ebay)
+            return None
+
+        with ThreadPoolExecutor(max_workers=min(6, len(cards) or 1)) as pool:
+            results = [r for r in pool.map(_fetch_price, cards) if r is not None]
+
         return jsonify({
             "success": True,
             "total_cards": len(results),
@@ -1492,33 +1503,36 @@ def grading_costs():
 @app.post("/flip/batch")
 def flip_batch():
     """
-    Calculate flip profitability for multiple cards.
-    
+    Calculate flip profitability for multiple cards (parallel).
+
     Input: {"cards": [{"name": "...", "raw_price": 50}, ...]}
     """
     try:
+        from concurrent.futures import ThreadPoolExecutor
         from market.flip_calculator import calculate_flip
-        
+
         payload = request.get_json(force=True) or {}
         cards = payload.get("cards", [])
         company = payload.get("company", "PSA")
         tier = payload.get("tier", "economy")
         condition = payload.get("condition", "mint")
-        
-        results = []
-        for card in cards:
+
+        def _calc(card):
             card_name = card.get("name") or card.get("card_name", "")
-            if card_name:
-                result = calculate_flip(
-                    card_name=card_name,
-                    set_name=card.get("set", ""),
-                    raw_price=card.get("raw_price") or card.get("price"),
-                    company=company,
-                    tier=tier,
-                    condition=condition,
-                )
-                results.append(result)
-        
+            if not card_name:
+                return None
+            return calculate_flip(
+                card_name=card_name,
+                set_name=card.get("set", ""),
+                raw_price=card.get("raw_price") or card.get("price"),
+                company=company,
+                tier=tier,
+                condition=condition,
+            )
+
+        with ThreadPoolExecutor(max_workers=min(6, len(cards) or 1)) as pool:
+            results = [r for r in pool.map(_calc, cards) if r is not None]
+
         return jsonify({
             "success": True,
             "total_cards": len(results),
@@ -1623,30 +1637,35 @@ def full_pipeline():
     2. Analyze prices
     3. Grade/evaluate products
     4. Auto-buy qualifying items
-    
+
     Returns complete results with purchases and alerts.
     """
     body = request.get_json(force=True) or {}
     set_name = body.get("set_name", "Pokemon TCG")
-    
-    # Step 1: Scan all retailers
-    scan_result = scan_all_retailers().get_json()
-    
-    # Add set_name to the data for downstream agents
+    query = body.get("query", "pokemon trading cards")
+    zip_code = body.get("zip_code", "90210")
+
+    # Step 1: Scan all retailers directly (avoid internal HTTP round-trip)
+    try:
+        from scanners.stock_checker import scan_all
+        scan_result = scan_all(query, zip_code)
+    except ImportError:
+        scan_result = {"success": False, "products": [], "error": "scanner import failed"}
+
     scan_result["set_name"] = set_name
-    
+
     # Step 2: Price analysis
     price_script = str((BASE_DIR / "price_agent.py").resolve())
     price_result = run_cmd(["python3", price_script], stdin_json=scan_result)
-    
+
     # Step 3: Grading/evaluation
     grading_script = str((BASE_DIR / "grading_agent.py").resolve())
     grading_result = run_cmd(["python3", grading_script], stdin_json=price_result)
-    
+
     # Step 4: Auto-buy
     autobuy_script = str((BASE_DIR / "buyers" / "auto_buyer.py").resolve())
     final_result = run_cmd(["python3", autobuy_script], stdin_json=grading_result)
-    
+
     return jsonify(final_result)
 
 

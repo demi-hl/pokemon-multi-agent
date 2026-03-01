@@ -34,36 +34,41 @@ def evaluate_product(product: Dict[str, Any]) -> Dict[str, Any]:
     return evaluation
 
 
-input_data = sys.stdin.read() or "{}"
-data = json.loads(input_data)
+def evaluate_products_batch(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Evaluate all products in *data* for buy signals (importable API)."""
+    alerts: List[Dict[str, Any]] = []
 
-alerts: List[Dict[str, Any]] = []
+    for p in data.get("products", []):
+        p["evaluation"] = evaluate_product(p)
 
-for p in data.get("products", []):
-    p["evaluation"] = evaluate_product(p)
+        if p.get("evaluation", {}).get("should_buy") and p.get("stock"):
+            alerts.append(
+                {
+                    "type": "BUY_SIGNAL",
+                    "set_name": data.get("set_name"),
+                    "product_name": p.get("name"),
+                    "retailer": p.get("retailer"),
+                    "price": p.get("price"),
+                    "market_price": p.get("pricing", {}).get("market_price"),
+                    "delta_pct": p.get("pricing", {}).get("delta_pct"),
+                    "reason": p.get("evaluation", {}).get("reason"),
+                }
+            )
 
-    # Generate a simple stock/price alert if the card looks attractive and is in stock
-    if p.get("evaluation", {}).get("should_buy") and p.get("stock"):
-        alerts.append(
-            {
-                "type": "BUY_SIGNAL",
-                "set_name": data.get("set_name"),
-                "product_name": p.get("name"),
-                "retailer": p.get("retailer"),
-                "price": p.get("price"),
-                "market_price": p.get("pricing", {}).get("market_price"),
-                "delta_pct": p.get("pricing", {}).get("delta_pct"),
-                "reason": p.get("evaluation", {}).get("reason"),
-            }
-        )
+    data["decision"] = {
+        "approved": any(a["type"] == "BUY_SIGNAL" for a in alerts),
+        "max_quantity": 2,
+        "risk_score": 0.2 if alerts else 0.6,
+    }
 
-data["decision"] = {
-    "approved": any(a["type"] == "BUY_SIGNAL" for a in alerts),
-    "max_quantity": 2,
-    "risk_score": 0.2 if alerts else 0.6,
-}
+    if alerts:
+        data["alerts"] = alerts
 
-if alerts:
-    data["alerts"] = alerts
+    return data
 
-print(json.dumps(data))
+
+if __name__ == "__main__":
+    input_data = sys.stdin.read() or "{}"
+    data = json.loads(input_data)
+    data = evaluate_products_batch(data)
+    print(json.dumps(data))

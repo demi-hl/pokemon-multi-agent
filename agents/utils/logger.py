@@ -253,15 +253,15 @@ _error_tracker = ErrorTracker()
 # CONVENIENCE FUNCTIONS
 # =============================================================================
 
-# Global logger instance
-_logger: Optional[logging.Logger] = None
+# Named logger cache
+_loggers: Dict[str, logging.Logger] = {}
+
 
 def get_logger(name: str = "pokemon_agent") -> logging.Logger:
-    """Get or create global logger."""
-    global _logger
-    if _logger is None:
-        _logger = setup_logger(name)
-    return _logger
+    """Get or create a named logger (cached per name)."""
+    if name not in _loggers:
+        _loggers[name] = setup_logger(name)
+    return _loggers[name]
 
 
 def log_info(message: str, **kwargs):

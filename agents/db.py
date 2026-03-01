@@ -93,9 +93,18 @@ def init_db() -> None:
         conn.commit()
 
 
-@lru_cache(maxsize=1000)
+# Simple dict cache instead of lru_cache so we can do targeted invalidation
+_product_id_cache: Dict[tuple, int] = {}
+_PRODUCT_CACHE_MAX = 2000
+
+
 def _get_product_id_cached(set_name: str, name: str, retailer: str, url: Optional[str]) -> Optional[int]:
-    """Cached lookup for product ID (cache cleared on insert)."""
+    """Cached lookup for product ID."""
+    cache_key = (set_name, name, retailer, url)
+    cached = _product_id_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     with get_connection() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -107,7 +116,18 @@ def _get_product_id_cached(set_name: str, name: str, retailer: str, url: Optiona
             (set_name, name, retailer, url, url),
         )
         row = cur.fetchone()
-        return int(row["id"]) if row else None
+        if row:
+            pid = int(row["id"])
+            _product_id_cache[cache_key] = pid
+            # Evict oldest entries if cache is too large
+            if len(_product_id_cache) > _PRODUCT_CACHE_MAX:
+                # Remove ~25% of entries (oldest inserted)
+                to_remove = list(_product_id_cache.keys())[:_PRODUCT_CACHE_MAX // 4]
+                for k in to_remove:
+                    _product_id_cache.pop(k, None)
+            return pid
+        return None
+
 
 def get_or_create_product(
     set_name: str, name: str, retailer: str, url: Optional[str]
@@ -116,7 +136,8 @@ def get_or_create_product(
     cached_id = _get_product_id_cached(set_name, name, retailer, url)
     if cached_id:
         return cached_id
-    
+
+    cache_key = (set_name, name, retailer, url)
     with get_connection() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -128,9 +149,6 @@ def get_or_create_product(
         )
         conn.commit()
 
-        # Clear cache for this lookup
-        _get_product_id_cached.cache_clear()
-        
         cur.execute(
             """
             SELECT id FROM products
@@ -142,7 +160,10 @@ def get_or_create_product(
         row = cur.fetchone()
         if not row:
             raise RuntimeError("Failed to fetch or create product record")
-        return int(row["id"])
+        pid = int(row["id"])
+        # Cache the newly created ID (targeted, no full cache clear)
+        _product_id_cache[cache_key] = pid
+        return pid
 
 
 def record_price_snapshot(

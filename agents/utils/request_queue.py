@@ -67,6 +67,9 @@ class RequestQueue:
     - Request tracking
     """
     
+    # Cap stored results/errors to prevent unbounded memory growth
+    _MAX_STORED_RESULTS = 500
+
     def __init__(
         self,
         max_concurrent: int = MAX_CONCURRENT_REQUESTS,
@@ -81,7 +84,7 @@ class RequestQueue:
         self.worker_thread: Optional[threading.Thread] = None
         self.running = False
         self.lock = threading.Lock()
-        
+
         # Statistics
         self.stats = {
             "total_queued": 0,
@@ -329,7 +332,15 @@ class RequestQueue:
                 self.active_requests.pop(request_id, None)
                 self.stats["current_active"] = len(self.active_requests)
                 self.stats["current_queued"] = self.queue.qsize()
-            
+
+            # Evict old results/errors to prevent unbounded memory growth
+            for store in (self.request_results, self.request_errors):
+                if len(store) > self._MAX_STORED_RESULTS:
+                    # Remove oldest half
+                    excess = list(store.keys())[: len(store) // 2]
+                    for k in excess:
+                        store.pop(k, None)
+
             # Mark task as done
             self.queue.task_done()
     

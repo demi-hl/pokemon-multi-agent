@@ -145,14 +145,21 @@ def estimate_market_price(product: Dict[str, Any]) -> Dict[str, Any]:
     return pricing
 
 
-input_data = sys.stdin.read() or "{}"
-data = json.loads(input_data)
+def estimate_prices_batch(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Enrich all products in *data* with market pricing (importable API).
 
-set_name = data.get("set_name", "")
+    This is the same logic that the CLI entry point uses, but callable
+    directly so the server can skip the subprocess overhead.
+    """
+    set_name = data.get("set_name", "")
+    for p in data.get("products", []):
+        p.setdefault("set_name", set_name)
+        p["pricing"] = estimate_market_price(p)
+    return data
 
-for p in data.get("products", []):
-    # make sure downstream has the set info for this product
-    p.setdefault("set_name", set_name)
-    p["pricing"] = estimate_market_price(p)
 
-print(json.dumps(data))
+if __name__ == "__main__":
+    input_data = sys.stdin.read() or "{}"
+    data = json.loads(input_data)
+    data = estimate_prices_batch(data)
+    print(json.dumps(data))

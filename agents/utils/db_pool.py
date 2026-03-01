@@ -8,6 +8,7 @@ and handle concurrent requests better.
 import os
 import sqlite3
 import threading
+import time
 from typing import Optional, Dict
 from pathlib import Path
 from contextlib import contextmanager
@@ -95,19 +96,22 @@ class ConnectionPool:
         conn.execute("PRAGMA temp_store=MEMORY")
         return conn
     
+    # Only health-check connections that have been idle > 60 seconds
+    _HEALTH_CHECK_INTERVAL = 60
+
     def _is_connection_alive(self, conn: sqlite3.Connection) -> bool:
         """Check if connection is still alive."""
         try:
             conn.execute("SELECT 1")
             return True
-        except:
+        except Exception:
             return False
-    
+
     @contextmanager
     def get_connection(self):
         """
         Get a connection from the pool (context manager).
-        
+
         Usage:
             with pool.get_connection() as conn:
                 cursor = conn.cursor()
@@ -128,38 +132,44 @@ class ConnectionPool:
                     else:
                         # Wait a bit more for connection to become available
                         conn = self.pool.get(timeout=self.timeout)
-            
-            # Check if connection is still alive
-            if not self._is_connection_alive(conn):
-                logger.warning("Connection dead, creating new one")
-                try:
-                    conn.close()
-                except:
-                    pass
-                conn = self._create_connection()
-                with self.lock:
-                    self.created_connections += 1
-            
+
+            # Only health-check connections that have been idle a while
+            # (avoids a round-trip on every borrow)
+            last_used = getattr(conn, "_last_used", 0)
+            if time.time() - last_used > self._HEALTH_CHECK_INTERVAL:
+                if not self._is_connection_alive(conn):
+                    logger.warning("Connection dead, creating new one")
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
+                    conn = self._create_connection()
+                    with self.lock:
+                        self.created_connections += 1
+
             with self.lock:
                 self.active_connections += 1
-            
+
             yield conn
             
         finally:
             if conn:
                 with self.lock:
                     self.active_connections -= 1
-                
+
+                # Stamp last-used time for idle health checks
+                conn._last_used = time.time()
+
                 # Return connection to pool
                 try:
                     self.pool.put(conn, block=False)
-                except:
+                except Exception:
                     # Pool is full, close connection
                     try:
                         conn.close()
                         with self.lock:
                             self.created_connections -= 1
-                    except:
+                    except Exception:
                         pass
     
     def get_stats(self) -> Dict:

@@ -158,18 +158,36 @@ class Product:
 
 
 # =============================================================================
-# CACHE - With TTL Support
+# CACHE - Hybrid in-memory + disk with TTL Support
 # =============================================================================
+
+# In-memory cache layer to avoid disk I/O on hot paths
+_mem_cache: Dict[str, Tuple[float, List[Dict]]] = {}  # key -> (expiry_ts, products)
+_MEM_CACHE_MAX = 64  # max entries to prevent unbounded growth
+
 
 class Cache:
     @staticmethod
     def key(retailer: str, query: str = "") -> str:
         return hashlib.md5(f"{retailer}_{query}".lower().encode()).hexdigest()
-    
+
     @staticmethod
     def get(retailer: str, query: str = "", ttl_override: int = None) -> Optional[List[Dict]]:
-        """Get cached data if not expired."""
-        cache_file = CACHE_DIR / f"{Cache.key(retailer, query)}.json"
+        """Get cached data if not expired (checks memory first, then disk)."""
+        k = Cache.key(retailer, query)
+        now = time.time()
+
+        # 1) In-memory fast path
+        entry = _mem_cache.get(k)
+        if entry is not None:
+            expiry, products = entry
+            if now < expiry:
+                return products
+            else:
+                _mem_cache.pop(k, None)
+
+        # 2) Disk fallback
+        cache_file = CACHE_DIR / f"{k}.json"
         if not cache_file.exists():
             return None
         try:
@@ -178,23 +196,42 @@ class Cache:
             ttl = ttl_override if ttl_override is not None else CACHE_TTL_SECONDS
             if datetime.now() - datetime.fromisoformat(data["ts"]) > timedelta(seconds=ttl):
                 return None
-            return data["products"]
+            products = data["products"]
+            # Promote to memory cache
+            _mem_cache[k] = (now + ttl, products)
+            return products
         except Exception:
             return None
-    
+
     @staticmethod
     def set(retailer: str, query: str, products: List[Dict]):
-        """Cache products with timestamp."""
-        cache_file = CACHE_DIR / f"{Cache.key(retailer, query)}.json"
+        """Cache products in memory and on disk."""
+        k = Cache.key(retailer, query)
+
+        # Memory cache
+        _mem_cache[k] = (time.time() + CACHE_TTL_SECONDS, products)
+        # Evict oldest if too large
+        if len(_mem_cache) > _MEM_CACHE_MAX:
+            oldest = min(_mem_cache, key=lambda x: _mem_cache[x][0])
+            _mem_cache.pop(oldest, None)
+
+        # Disk cache
+        cache_file = CACHE_DIR / f"{k}.json"
         try:
             with open(cache_file, "w") as f:
                 json.dump({"ts": datetime.now().isoformat(), "products": products}, f)
         except Exception:
             pass
-    
+
     @staticmethod
     def clear(retailer: str = None):
         """Clear cache for retailer or all."""
+        if retailer is None:
+            _mem_cache.clear()
+        else:
+            to_del = [k for k in _mem_cache if retailer.lower() in k]
+            for k in to_del:
+                _mem_cache.pop(k, None)
         try:
             if retailer:
                 for f in CACHE_DIR.glob(f"*{retailer}*.json"):
@@ -623,38 +660,45 @@ def _scan_walmart_scrape(query: str, session: requests.Session) -> List[Product]
     return products
 
 
-def _extract_walmart_items(data: dict, items: list = None) -> list:
-    """Recursively extract product items from Walmart's JSON."""
+def _extract_walmart_items(data, items=None) -> list:
+    """Recursively extract product items from Walmart's JSON.
+
+    Uses an iterative stack to avoid deep recursion on large payloads
+    and caps results early to avoid unnecessary traversal.
+    """
     if items is None:
         items = []
-    
-    if isinstance(data, dict):
-        # Check if this looks like a product
-        if "name" in data and ("usItemId" in data or "canonicalUrl" in data):
-            price = 0
-            if "priceInfo" in data:
-                price = data["priceInfo"].get("currentPrice", {}).get("price", 0)
-            elif "price" in data:
-                price = data.get("price", 0)
-            
-            items.append({
-                "name": data.get("name", ""),
-                "price": price,
-                "url": f"https://www.walmart.com{data.get('canonicalUrl', '')}" if data.get('canonicalUrl') else "",
-                "sku": data.get("usItemId", ""),
-                "in_stock": data.get("availabilityStatusV2", {}).get("value", "").upper() in ["IN_STOCK", "AVAILABLE"],
-                "image": data.get("imageInfo", {}).get("thumbnailUrl", ""),
-            })
-        
-        # Recurse into dict values
-        for v in data.values():
-            _extract_walmart_items(v, items)
-    
-    elif isinstance(data, list):
-        for item in data:
-            _extract_walmart_items(item, items)
-    
-    return items[:24]  # Limit results
+    max_items = 24
+    stack = [data]
+
+    while stack and len(items) < max_items:
+        node = stack.pop()
+
+        if isinstance(node, dict):
+            # Check if this looks like a product
+            if "name" in node and ("usItemId" in node or "canonicalUrl" in node):
+                price = 0
+                if "priceInfo" in node:
+                    price = node["priceInfo"].get("currentPrice", {}).get("price", 0)
+                elif "price" in node:
+                    price = node.get("price", 0)
+
+                items.append({
+                    "name": node.get("name", ""),
+                    "price": price,
+                    "url": f"https://www.walmart.com{node.get('canonicalUrl', '')}" if node.get("canonicalUrl") else "",
+                    "sku": node.get("usItemId", ""),
+                    "in_stock": node.get("availabilityStatusV2", {}).get("value", "").upper() in ("IN_STOCK", "AVAILABLE"),
+                    "image": node.get("imageInfo", {}).get("thumbnailUrl", ""),
+                })
+
+            # Push dict values onto the stack
+            stack.extend(node.values())
+
+        elif isinstance(node, list):
+            stack.extend(node)
+
+    return items[:max_items]
 
 
 # =============================================================================
