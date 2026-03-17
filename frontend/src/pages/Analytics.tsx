@@ -304,7 +304,7 @@ export default function Analytics() {
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-xs font-mono text-muted w-5">{i + 1}.</span>
-                        <span className="text-sm font-medium truncate">{(item.card_name as string) || item.card_id}</span>
+                        <span className="text-sm font-medium truncate">{(item as any).card_name || item.card_id}</span>
                       </div>
                       <div className="text-right">
                         <p className="text-xs font-mono-numbers font-bold text-success text-glow-green">
@@ -345,7 +345,7 @@ export default function Analytics() {
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-xs font-mono text-muted w-5">{i + 1}.</span>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{(item.card_name as string) || item.card_id}</p>
+                          <p className="text-sm font-medium truncate">{(item as any).card_name || item.card_id}</p>
                           <p className="text-[10px] text-muted">{item.condition} {item.quantity > 1 ? `x${item.quantity}` : ''}</p>
                         </div>
                       </div>
