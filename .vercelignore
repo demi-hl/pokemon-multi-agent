@@ -1,0 +1,16 @@
+api/
+agents/
+db/
+market/
+search/
+collection/
+alerts/
+grading/
+agent/
+scripts/
+workflows/
+*.py
+*.db
+requirements.txt
+render.yaml
+Procfile
