@@ -3,10 +3,13 @@
   "name": "poke-agent",
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://pokemon-multi-agent.onrender.com/api/$1" },
-    { "source": "/dashboard", "destination": "/app.html" },
-    { "source": "/dashboard/(.*)", "destination": "/app.html" }
+  "routes": [
+    { "src": "/api/(.*)", "dest": "https://pokemon-multi-agent.onrender.com/api/$1" },
+    { "src": "/dashboard", "dest": "/index.html" },
+    { "src": "/dashboard/(.*)", "dest": "/index.html" },
+    { "src": "^/$", "dest": "/landing.html" },
+    { "src": "/(css|js|assets|pokeball\\.svg)(.*)", "dest": "/$1$2" },
+    { "src": "/(.*)", "dest": "/$1" }
   ],
   "headers": [
     {
@@ -21,12 +24,6 @@
       "source": "/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
-      ]
-    },
-    {
-      "source": "/assets/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     }
   ]
