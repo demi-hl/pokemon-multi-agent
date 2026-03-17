@@ -61,9 +61,8 @@ const CURATED_IMAGES: Record<string, string> = {
  * Only proxies external URLs; local/relative URLs pass through unchanged.
  */
 export function proxyImageUrl(url: string): string {
-  if (!url || url.startsWith('/') || url.startsWith('data:')) return url;
-  // Proxy external URLs through backend to avoid rate limits and CORS issues
-  return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+  // Return direct URLs — pokemontcg.io and Amazon images load without proxy
+  return url;
 }
 
 /**
