@@ -14,8 +14,23 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'https://pokemon-multi-agent.onrender.com',
+        target: 'http://localhost:5001',
         changeOrigin: true,
+      },
+    },
+  },
+  build: {
+    target: 'es2020',
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-charts': ['recharts'],
+          'vendor-motion': ['framer-motion'],
+          'vendor-query': ['@tanstack/react-query'],
+          'vendor-web3': ['wagmi', 'viem', '@wagmi/core'],
+        },
       },
     },
   },

@@ -1,4 +1,5 @@
 import React from 'react'
+import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 const colorStyles = {
@@ -14,12 +15,14 @@ export interface ProgressProps {
   value: number
   className?: string
   color?: ProgressColor
+  glow?: boolean
 }
 
 export const Progress: React.FC<ProgressProps> = ({
   value,
   className,
   color = 'accent',
+  glow = false,
 }) => {
   const clampedValue = Math.min(100, Math.max(0, value))
 
@@ -27,6 +30,7 @@ export const Progress: React.FC<ProgressProps> = ({
     <div
       className={cn(
         'h-2 w-full overflow-hidden rounded-full bg-border',
+        glow && 'glow-accent',
         className,
       )}
       role="progressbar"
@@ -34,12 +38,17 @@ export const Progress: React.FC<ProgressProps> = ({
       aria-valuemin={0}
       aria-valuemax={100}
     >
-      <div
+      <motion.div
         className={cn(
-          'h-full rounded-full transition-all duration-500 ease-out',
+          'h-full rounded-full',
           colorStyles[color],
         )}
-        style={{ width: `${clampedValue}%` }}
+        initial={{ width: 0 }}
+        animate={{ width: `${clampedValue}%` }}
+        transition={{
+          duration: 0.8,
+          ease: [0.25, 0.46, 0.45, 0.94],
+        }}
       />
     </div>
   )

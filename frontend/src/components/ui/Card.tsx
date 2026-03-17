@@ -3,10 +3,11 @@ import { cn } from '@/lib/utils'
 
 const variantStyles = {
   default: 'bg-surface border border-border',
-  elevated: 'bg-surface-elevated shadow-card',
-  gradient: 'bg-gradient-to-br from-surface-elevated to-surface border border-border',
-  accent: 'border border-accent/20 bg-accent-muted',
+  elevated: 'bg-surface-elevated shadow-card holo-shine border-beam',
+  gradient: 'bg-gradient-to-br from-surface-elevated to-surface border border-border holo-shine',
+  accent: 'border border-accent/20 bg-accent-muted gradient-border glow-accent',
   danger: 'border border-danger/20 bg-danger-muted',
+  premium: 'premium-card holo-shine border-beam',
 } as const
 
 export type CardVariant = keyof typeof variantStyles

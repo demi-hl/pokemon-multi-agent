@@ -52,7 +52,11 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     >
       {/* Brand */}
       <div className="flex items-center gap-3 h-16 px-4 border-b border-border shrink-0">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/10">
+        <motion.div
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/10 glow-accent"
+          whileHover={{ scale: 1.1, rotate: 15 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+        >
           {/* Pokeball icon */}
           <svg
             viewBox="0 0 24 24"
@@ -67,13 +71,13 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <line x1="2" y1="12" x2="22" y2="12" />
             <circle cx="12" cy="12" r="3" />
           </svg>
-        </div>
+        </motion.div>
         {!collapsed && (
           <motion.span
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -8 }}
-            className="text-lg font-bold tracking-tight text-foreground whitespace-nowrap"
+            className="text-lg font-bold tracking-tight whitespace-nowrap gradient-text"
           >
             PokeAgent
           </motion.span>
@@ -91,15 +95,15 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               end={item.path === '/'}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors relative',
+                  'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 relative nav-link-premium',
                   isActive
-                    ? 'bg-accent-muted text-accent border-l-2 border-accent'
+                    ? 'bg-accent-muted text-accent border-l-2 border-accent glow-accent'
                     : 'text-muted hover:text-foreground hover:bg-surface-hover border-l-2 border-transparent'
                 )
               }
               title={collapsed ? item.label : undefined}
             >
-              {Icon && <Icon className="h-5 w-5 shrink-0" />}
+              {Icon && <Icon className="h-5 w-5 shrink-0 transition-transform duration-200 group-hover:scale-110" />}
               {!collapsed && (
                 <motion.span
                   initial={{ opacity: 0 }}

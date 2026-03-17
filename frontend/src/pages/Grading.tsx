@@ -63,7 +63,7 @@ const GRADING_COMPANIES = [
       { name: 'Walk-Through', cost: 250, turnaround: '2 business days', minValue: 500 },
     ],
     grades: ['10 (Pristine)', '9.5 (Gem Mint)', '9 (Mint)', '8.5 (NM-MT+)', '8 (NM-MT)', '7.5 (NM+)', '7 (NM)'],
-    color: '#22c55e',
+    color: '#ef4444',
     multipliers: { '10': 2.4, '9.5': 1.9, '9': 1.4, '8.5': 1.1, '8': 0.9 },
   },
 ]
@@ -82,7 +82,7 @@ const CENTERING_GUIDE = [
 ]
 
 function getGradeBorderColor(grade: number): string {
-  if (grade >= 9.5) return 'border-emerald-400'
+  if (grade >= 9.5) return 'border-red-400'
   if (grade >= 9.0) return 'border-accent'
   if (grade >= 8.0) return 'border-blue-400'
   if (grade >= 7.0) return 'border-amber-400'
@@ -90,7 +90,7 @@ function getGradeBorderColor(grade: number): string {
 }
 
 function getGradeTextColor(grade: number): string {
-  if (grade >= 9.5) return 'text-emerald-400'
+  if (grade >= 9.5) return 'text-red-400'
   if (grade >= 9.0) return 'text-accent'
   if (grade >= 8.0) return 'text-blue-400'
   if (grade >= 7.0) return 'text-amber-400'
@@ -293,14 +293,14 @@ export default function Grading() {
                     onClick={() => toggleChecklist(item.id)}
                     className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all duration-200 ${
                       checklist[item.id]
-                        ? 'border-emerald-500/20 bg-emerald-500/[0.05]'
+                        ? 'border-red-500/20 bg-red-500/[0.05]'
                         : 'border-white/[0.04] hover:border-white/[0.08]'
                     }`}
                   >
                     <div className={`h-5 w-5 rounded-md border-2 flex items-center justify-center transition-all ${
-                      checklist[item.id] ? 'border-emerald-400 bg-emerald-400/20' : 'border-white/[0.12]'
+                      checklist[item.id] ? 'border-red-400 bg-red-400/20' : 'border-white/[0.12]'
                     }`}>
-                      {checklist[item.id] && <CheckCircle2 className="h-3 w-3 text-emerald-400" />}
+                      {checklist[item.id] && <CheckCircle2 className="h-3 w-3 text-red-400" />}
                     </div>
                     <div>
                       <p className="text-sm font-medium">{item.label}</p>
@@ -412,7 +412,7 @@ export default function Grading() {
                             <span className="text-sm font-medium">{v.grade}</span>
                             <div className="flex items-center gap-3">
                               <span className="text-sm font-mono-numbers">${formatPrice(v.value)}</span>
-                              <span className={`text-xs font-mono-numbers font-bold ${v.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              <span className={`text-xs font-mono-numbers font-bold ${v.profit >= 0 ? 'text-red-400' : 'text-rose-400'}`}>
                                 {v.profit >= 0 ? '+' : ''}${formatPrice(v.profit)}
                               </span>
                             </div>
@@ -522,7 +522,7 @@ export default function Grading() {
                               <span className="text-sm font-medium">{v.grade}</span>
                               <div className="flex items-center gap-3">
                                 <span className="text-sm font-mono-numbers">${formatPrice(v.value)}</span>
-                                <span className={`text-xs font-mono-numbers font-bold ${v.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                <span className={`text-xs font-mono-numbers font-bold ${v.profit >= 0 ? 'text-red-400' : 'text-rose-400'}`}>
                                   {v.profit >= 0 ? '+' : ''}${formatPrice(v.profit)}
                                 </span>
                               </div>
@@ -544,7 +544,7 @@ export default function Grading() {
                       <div className="space-y-2">
                         {companyData.tiers.map(t => {
                           const rawVal = parseFloat(rawCardValue) || 0
-                          const estimatedGradedValue = rawVal * (companyData.multipliers[Object.keys(companyData.multipliers)[0]] || 2)
+                          const estimatedGradedValue = rawVal * ((companyData.multipliers as unknown as Record<string, number>)[Object.keys(companyData.multipliers)[0]] || 2)
                           const roi = rawVal > 0 ? estimatedGradedValue - rawVal - t.cost : 0
                           return (
                             <div key={t.name} className="flex items-center justify-between p-3 rounded-xl border border-white/[0.04]">
@@ -555,7 +555,7 @@ export default function Grading() {
                               <div className="flex items-center gap-3">
                                 <span className="text-sm font-mono-numbers font-bold">${t.cost}</span>
                                 {rawVal > 0 && (
-                                  <span className={`text-xs font-mono-numbers ${roi >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                  <span className={`text-xs font-mono-numbers ${roi >= 0 ? 'text-red-400' : 'text-rose-400'}`}>
                                     ROI: {roi >= 0 ? '+' : ''}${formatPrice(roi)}
                                   </span>
                                 )}

@@ -6,12 +6,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import type { AddCollectionBody, CreateAlertBody, AgentSettings, ChatMessage } from '@/lib/api'
 
-/* ── Sets ── */
+/* ── Sets (stable data — long cache) ── */
 export function useSets(series?: string) {
   return useQuery({
     queryKey: ['sets', series],
     queryFn: () => api.sets.list(series),
-    staleTime: 5 * 60_000,
+    staleTime: 10 * 60_000,   // sets rarely change — 10 min
+    gcTime: 60 * 60_000,      // keep in memory 1 hour
   })
 }
 
@@ -20,7 +21,8 @@ export function useSet(setId: string) {
     queryKey: ['set', setId],
     queryFn: () => api.sets.get(setId),
     enabled: !!setId,
-    staleTime: 5 * 60_000,
+    staleTime: 10 * 60_000,
+    gcTime: 60 * 60_000,
   })
 }
 
@@ -29,7 +31,8 @@ export function usePullRates(setId: string) {
     queryKey: ['pullRates', setId],
     queryFn: () => api.sets.pullRates(setId),
     enabled: !!setId,
-    staleTime: 10 * 60_000,
+    staleTime: 15 * 60_000,   // pull rates are static
+    gcTime: 60 * 60_000,
   })
 }
 
@@ -39,6 +42,7 @@ export function useChaseCards(setId: string, rarity?: string, limit = 24) {
     queryFn: () => api.sets.chaseCards(setId, rarity, limit),
     enabled: !!setId,
     staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
   })
 }
 
@@ -65,6 +69,15 @@ export function useGradedPrices(cardId: string) {
   return useQuery({
     queryKey: ['gradedPrices', cardId],
     queryFn: () => api.cards.gradedPrices(cardId),
+    enabled: !!cardId,
+    staleTime: 5 * 60_000,
+  })
+}
+
+export function useEbaySold(cardId: string | undefined, limit = 10) {
+  return useQuery({
+    queryKey: ['ebaySold', cardId, limit],
+    queryFn: () => api.cards.ebaySold(cardId!, limit),
     enabled: !!cardId,
     staleTime: 5 * 60_000,
   })
@@ -192,5 +205,56 @@ export function useAssistantChat() {
   return useMutation({
     mutationFn: ({ message, history }: { message: string; history: ChatMessage[] }) =>
       api.assistant.chat(message, history),
+  })
+}
+
+/* ── Sealed Products (moderately stable) ── */
+export function useSealedProducts(setName?: string, productType?: string) {
+  return useQuery({
+    queryKey: ['sealed', setName, productType],
+    queryFn: () => api.sealed.list(setName, productType),
+    staleTime: 10 * 60_000,  // sealed products change slowly
+    gcTime: 60 * 60_000,
+  })
+}
+
+export function useSealedPriceHistory(id: number | undefined, days: number = 90) {
+  return useQuery({
+    queryKey: ['sealedPriceHistory', id, days],
+    queryFn: () => api.sealed.priceHistory(id!, days),
+    enabled: !!id,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+  })
+}
+
+/* ── Card Price History ── */
+export function useCardPriceHistory(cardId: string | undefined, days: number = 90) {
+  return useQuery({
+    queryKey: ['cardPriceHistory', cardId, days],
+    queryFn: () => api.cards.priceHistory(cardId!, days),
+    enabled: !!cardId,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+  })
+}
+
+export function useGradedPricesStructured(cardId: string | undefined) {
+  return useQuery({
+    queryKey: ['gradedPricesStructured', cardId],
+    queryFn: () => api.cards.gradedPricesStructured(cardId!),
+    enabled: !!cardId,
+    staleTime: 10 * 60_000,
+    gcTime: 60 * 60_000,
+  })
+}
+
+/* ── Trending (cached but refreshes more often) ── */
+export function useTrendingCards(limit: number = 20) {
+  return useQuery({
+    queryKey: ['trending', limit],
+    queryFn: () => api.trending(limit),
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
   })
 }

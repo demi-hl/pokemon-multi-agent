@@ -33,7 +33,7 @@ interface GradeOutcome {
   label: string
   probability: number
   multiplier: number
-  color: 'success' | 'warning' | 'danger' | 'accent' | 'info'
+  color: 'success' | 'warning' | 'danger' | 'accent'
 }
 
 interface CompanyData {
@@ -98,7 +98,7 @@ const COMPANY_DATA: Record<string, CompanyData> = {
   CGC: {
     name: 'CGC',
     key: 'CGC',
-    color: '#3b82f6',
+    color: '#dc2626',
     bgColor: 'bg-blue-500/10 border-blue-500/20',
     shippingCost: 12,
     insuranceRate: 0.01,
@@ -503,7 +503,7 @@ export default function Flip() {
                         <motion.div key={co.key} variants={staggerItem}>
                           <div
                             className={`p-4 rounded-xl border space-y-3 ${co.bgColor} ${co.key === company ? 'ring-2 ring-offset-2 ring-offset-background' : ''}`}
-                            style={co.key === company ? { ringColor: co.color } : undefined}
+                            style={co.key === company ? { ['--tw-ring-color' as string]: co.color } as React.CSSProperties : undefined}
                           >
                             <div className="flex items-center justify-between">
                               <h4 className="font-bold text-foreground" style={{ color: co.color }}>{co.name}</h4>

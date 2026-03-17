@@ -78,3 +78,33 @@ export interface RecentSale {
   condition?: string
   platform?: string
 }
+
+// ===== Price History for Charts =====
+
+export interface CardPriceHistoryPoint {
+  card_id: string
+  price_raw: number | null
+  price_psa10: number | null
+  price_psa9: number | null
+  price_psa8: number | null
+  price_cgc10: number | null
+  price_cgc95: number | null
+  price_cgc9: number | null
+  price_bgs10: number | null
+  price_bgs95: number | null
+  price_bgs9: number | null
+  recorded_at: string
+}
+
+export interface GradedPricesStructured {
+  [grader: string]: {
+    [grade: string]: {
+      market: number | null
+      low: number | null
+      high: number | null
+      grade_label?: string
+      source?: string
+      updated_at?: string
+    }
+  }
+}

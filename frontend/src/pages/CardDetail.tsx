@@ -2,12 +2,12 @@ import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  ArrowLeft, ExternalLink, TrendingUp, TrendingDown,
-  ShoppingCart, Star, AlertCircle, Eye, EyeOff,
+  ArrowLeft, TrendingUp, TrendingDown,
+  Star, AlertCircle, Eye, EyeOff,
 } from 'lucide-react'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  CartesianGrid, Legend,
+  CartesianGrid,
 } from 'recharts'
 import { PageTransition } from '@/components/layout/PageTransition'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
@@ -18,7 +18,9 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { fadeInUp } from '@/lib/animations'
 import { formatPrice } from '@/lib/utils'
 import { CHART_COLORS, TIME_RANGES, GRADE_DATASETS, GRADED_CHART_COLORS } from '@/lib/constants'
-import { useCard, useGradedPrices } from '@/hooks/useApi'
+import { useCard, useGradedPrices, useCardPriceHistory, useGradedPricesStructured, useEbaySold } from '@/hooks/useApi'
+import { getCardImageUrl } from '../lib/product-images'
+import { OptimizedImage } from '../components/OptimizedImage'
 import type { GradedPriceEntry } from '@/lib/api'
 
 /* ═══════════════════════════════════════════════════════
@@ -91,13 +93,14 @@ function buildChartData(
   }
 
   return rawHistory.map((point) => {
-    const dp: ChartDataPoint = { date: point.date, raw: +point.price.toFixed(2) }
+    const price = point.price ?? 0
+    const dp: ChartDataPoint = { date: point.date, raw: +price.toFixed(2) }
     for (const ds of GRADE_DATASETS) {
       if (ds.key === 'raw') continue
       const mult = liveMultipliers[ds.key] || GRADE_MULTIPLIERS[ds.key] || 2
       // Add per-grade variance so lines aren't perfectly parallel
-      const gradeNoise = 1 + (Math.random() - 0.5) * 0.03
-      dp[ds.key as keyof ChartDataPoint] = +(point.price * mult * gradeNoise).toFixed(2) as number
+      const gradeNoise = 1 + (Math.random() - 0.5) * 0.03;
+      (dp as any)[ds.key] = +(price * mult * gradeNoise).toFixed(2)
     }
     return dp
   })
@@ -163,7 +166,7 @@ function MultiLineTooltip({
    Page Component
    ═══════════════════════════════════════════════════════ */
 
-export default function CardDetail() {
+function CardDetailInner() {
   const { cardId } = useParams()
   const navigate = useNavigate()
   const [selectedRange, setSelectedRange] = useState('3M')
@@ -175,12 +178,22 @@ export default function CardDetail() {
   const { data: cardData, isLoading: cardLoading, isError: cardError } = useCard(cardId || '')
   const { data: gradedData, isLoading: gradedLoading } = useGradedPrices(cardId || '')
 
+  // Fetch real price history from API
+  const daysMap: Record<string, number> = { '1M': 30, '3M': 90, '6M': 180, '1Y': 365, '2Y': 730 }
+  const { data: priceHistoryData } = useCardPriceHistory(cardId, daysMap[selectedRange] || 90)
+
+  // Fetch structured graded prices from API
+  const { data: gradedStructuredData } = useGradedPricesStructured(cardId)
+
+  // Fetch eBay last-sold prices
+  const { data: ebayData, isLoading: ebayLoading } = useEbaySold(cardId)
+
   const card = cardData?.card
   const related = cardData?.related ?? []
   const gradedPrices = (gradedData ?? {}) as Record<string, GradedPriceEntry | Record<string, unknown>>
 
-  // Image URL — backend may use image_url or image field
-  const cardImage = card?.image_url || card?.image || card?.small_image_url || ''
+  // Image URL — use getCardImageUrl for better fallback chain
+  const cardImage = card ? getCardImageUrl(card) : ''
 
   // Raw market price
   const rawPrice = card?.tcgplayer_market ?? card?.price ?? null
@@ -214,7 +227,7 @@ export default function CardDetail() {
         low: entry.low,
         high: entry.high,
         source: entry.source ?? null,
-        color: ds?.color ?? '#60a5fa',
+        color: ds?.color ?? '#ef4444',
       })
     }
 
@@ -239,10 +252,28 @@ export default function CardDetail() {
     return cards
   }, [rawPrice, gradedPrices, card])
 
-  // ── Chart data ──
+  // ── Chart data — prefer API price history, fall back to card data or synthetic ──
+  const resolvedPriceHistory = useMemo(() => {
+    if (priceHistoryData?.data && priceHistoryData.data.length > 2) {
+      // Map API format (recorded_at, price_raw) to chart format (date, price)
+      return priceHistoryData.data.map((p: any) => ({
+        date: (p.recorded_at as string) || (p.date as string) || '',
+        price: (p.price_raw as number) ?? (p.price as number) ?? 0,
+      }))
+    }
+    if (card?.price_history) {
+      // Also normalize card-embedded price history
+      return (card.price_history as Array<Record<string, unknown>>).map((p) => ({
+        date: (p.recorded_at as string) || (p.date as string) || '',
+        price: (p.price_raw as number) ?? (p.price as number) ?? 0,
+      }))
+    }
+    return undefined
+  }, [priceHistoryData, card?.price_history])
+
   const chartData = useMemo(
-    () => buildChartData(rawPrice, card?.price_history, gradedPrices, selectedRange),
-    [rawPrice, card?.price_history, gradedPrices, selectedRange]
+    () => buildChartData(rawPrice, resolvedPriceHistory, gradedPrices, selectedRange),
+    [rawPrice, resolvedPriceHistory, gradedPrices, selectedRange]
   )
 
   // ── Chart stats ──
@@ -294,8 +325,20 @@ export default function CardDetail() {
       }
     }
 
-    return sales.sort((a, b) => b.price - a.price).slice(0, 10)
-  }, [rawPrice, gradedPrices, card])
+    // Add eBay sold listings
+    if (ebayData?.listings?.length) {
+      for (const listing of ebayData.listings.slice(0, 5)) {
+        sales.push({
+          grade: listing.condition || 'Raw',
+          price: listing.price,
+          platform: 'eBay Sold',
+          date: new Date().toISOString().slice(0, 10),
+        })
+      }
+    }
+
+    return sales.sort((a, b) => b.price - a.price).slice(0, 12)
+  }, [rawPrice, gradedPrices, card, ebayData])
 
   // ── Toggle dataset visibility ──
   const toggleDataset = (key: string) => {
@@ -357,6 +400,24 @@ export default function CardDetail() {
     return 'default' as const
   })()
 
+  // Determine premium visual classes based on rarity
+  const isRareOrAbove = (() => {
+    const r = (card.rarity || '').toLowerCase()
+    return r.includes('rare') || r.includes('ultra') || r.includes('secret') ||
+           r.includes('illustration') || r.includes('special art') || r.includes('hyper') ||
+           r.includes('full art')
+  })()
+
+  const rarityBadgeClass = (() => {
+    const r = (card.rarity || '').toLowerCase()
+    if (r.includes('special art') || r.includes('hyper')) return 'rarity-badge-sir'
+    if (r.includes('ultra') || r.includes('full art')) return 'rarity-badge-ultra'
+    if (r.includes('illustration') || r.includes('secret')) return 'rarity-badge-illustration'
+    return ''
+  })()
+
+  const isExpensiveCard = (rawPrice ?? 0) > 50
+
   return (
     <PageTransition>
       <div className="space-y-6">
@@ -369,38 +430,79 @@ export default function CardDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* ── Card Image ── */}
           <motion.div variants={fadeInUp} initial="initial" animate="animate" className="lg:col-span-1">
-            <Card variant="elevated" className="overflow-hidden sticky top-28">
-              <div className="aspect-[2.5/3.5] bg-gradient-to-br from-accent/10 via-surface-hover to-pokemon-pink/10 flex items-center justify-center relative overflow-hidden">
-                {cardImage ? (
-                  <img
-                    src={cardImage}
-                    alt={card.name}
-                    className="absolute inset-0 w-full h-full object-contain p-2"
-                  />
-                ) : (
-                  <Star className="w-20 h-20 text-accent/30" />
-                )}
-                <div className="absolute bottom-3 left-3 right-3 flex gap-2">
-                  {card.rarity && <Badge variant={rarityVariant}>{card.rarity}</Badge>}
+            <div className="card-3d">
+              <Card variant="elevated" className={`overflow-hidden sticky top-28 border-beam ${isRareOrAbove ? 'holo-rainbow' : ''}`}>
+                <div className="img-zoom-frame">
+                  <div className="aspect-[2.5/3.5] bg-gradient-to-br from-accent/10 via-surface-hover to-pokemon-pink/10 flex items-center justify-center relative overflow-hidden">
+                    {cardImage ? (
+                      <OptimizedImage
+                        src={cardImage}
+                        alt={card.name}
+                        className="object-contain p-2"
+                        containerClassName="absolute inset-0 w-full h-full"
+                        holoEffect={true}
+                        zoomOnHover={true}
+                      />
+                    ) : (
+                      <Star className="w-20 h-20 text-accent/30" />
+                    )}
+                    <div className="absolute bottom-3 left-3 right-3 flex gap-2 z-10">
+                      {card.rarity && (
+                        <Badge variant={rarityVariant} className={rarityBadgeClass}>
+                          {card.rarity}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <CardContent className="p-4 space-y-3">
-                {/* TCGPlayer pricing summary */}
-                {rawPrice != null && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted uppercase tracking-wide font-medium">Market Price</span>
-                    <span className="text-xl font-mono-numbers font-bold text-accent">${formatPrice(rawPrice)}</span>
-                  </div>
-                )}
-                {(card.tcgplayer_low != null || card.tcgplayer_high != null) && (
-                  <div className="flex items-center justify-between text-xs text-muted">
-                    {card.tcgplayer_low != null && <span>Low: ${formatPrice(card.tcgplayer_low)}</span>}
-                    {card.tcgplayer_mid != null && <span>Mid: ${formatPrice(card.tcgplayer_mid)}</span>}
-                    {card.tcgplayer_high != null && <span>High: ${formatPrice(card.tcgplayer_high)}</span>}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                <CardContent className="p-4 space-y-3">
+                  {/* TCGPlayer pricing summary */}
+                  {rawPrice != null && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted uppercase tracking-wide font-medium">Market Price</span>
+                      <span className={`text-xl font-mono-numbers font-bold kpi-value ${isExpensiveCard ? 'text-glow-gold' : ''}`}>
+                        ${formatPrice(rawPrice)}
+                      </span>
+                    </div>
+                  )}
+                  {(card.tcgplayer_low != null || card.tcgplayer_high != null) && (
+                    <div className="flex items-center justify-between text-xs text-muted">
+                      {card.tcgplayer_low != null && <span>Low: ${formatPrice(card.tcgplayer_low)}</span>}
+                      {card.tcgplayer_mid != null && <span>Mid: ${formatPrice(card.tcgplayer_mid)}</span>}
+                      {card.tcgplayer_high != null && <span>High: ${formatPrice(card.tcgplayer_high)}</span>}
+                    </div>
+                  )}
+
+                  {/* eBay Last Sold Summary */}
+                  {ebayLoading ? (
+                    <div className="pt-3 border-t border-white/[0.04]">
+                      <Skeleton className="h-6 w-32" />
+                    </div>
+                  ) : ebayData && ebayData.count > 0 ? (
+                    <div className="pt-3 border-t border-white/[0.04] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted uppercase tracking-wide font-medium">eBay Avg Sold</span>
+                        <span className="text-lg font-mono-numbers font-bold text-yellow-400">
+                          ${formatPrice(ebayData.avg_price)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted">
+                        <span>Low: ${formatPrice(ebayData.low_price)}</span>
+                        <span>Med: ${formatPrice(ebayData.median_price)}</span>
+                        <span>High: ${formatPrice(ebayData.high_price)}</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground/40">
+                        Based on {ebayData.count} listing{ebayData.count !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  ) : ebayData?.fallback ? (
+                    <div className="pt-3 border-t border-white/[0.04]">
+                      <p className="text-[10px] text-muted-foreground/40">{ebayData.message}</p>
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </div>
           </motion.div>
 
           {/* ── Card Info + Prices ── */}
@@ -434,7 +536,7 @@ export default function CardDetail() {
             </div>
 
             {/* ── Graded Price Cards ── */}
-            <Card variant="elevated">
+            <Card variant="elevated" className="gradient-border">
               <CardHeader>
                 <CardTitle className="text-base">Market Prices by Grade</CardTitle>
               </CardHeader>
@@ -453,7 +555,7 @@ export default function CardDetail() {
                         <button
                           key={g.key}
                           onClick={() => toggleDataset(g.key)}
-                          className={`relative p-3 rounded-xl border transition-all duration-300 text-left group ${
+                          className={`relative p-3 rounded-xl border transition-all duration-300 text-left group glass-card-enhanced ${
                             isVisible
                               ? 'border-white/[0.12] bg-white/[0.03]'
                               : 'border-white/[0.04] bg-transparent opacity-50'
@@ -493,7 +595,7 @@ export default function CardDetail() {
             </Card>
 
             {/* ── Multi-Line Price Chart ── */}
-            <Card variant="elevated">
+            <Card variant="elevated" className="chart-glow">
               <CardHeader className="flex-row items-center justify-between">
                 <CardTitle className="text-base">Price History — All Grades</CardTitle>
                 <div className="flex gap-1">
@@ -601,7 +703,7 @@ export default function CardDetail() {
                     </div>
                     <div className="text-center">
                       <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Change</p>
-                      <p className={`text-sm font-mono-numbers font-bold flex items-center justify-center gap-0.5 ${chartStats.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      <p className={`text-sm font-mono-numbers font-bold flex items-center justify-center gap-0.5 ${chartStats.change >= 0 ? 'text-red-400' : 'text-rose-400'}`}>
                         {chartStats.change >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                         {chartStats.change >= 0 ? '+' : ''}{chartStats.change.toFixed(1)}%
                       </p>
@@ -632,7 +734,7 @@ export default function CardDetail() {
                             backgroundColor:
                               GRADED_CHART_COLORS[
                                 GRADE_DATASETS.find((d) => sale.grade.toLowerCase().includes(d.label.toLowerCase().split(' ')[0]))?.key || 'raw'
-                              ] || '#60a5fa',
+                              ] || '#ef4444',
                           }}
                         />
                         <div className="min-w-0">
@@ -714,4 +816,8 @@ export default function CardDetail() {
       </div>
     </PageTransition>
   )
+}
+
+export default function CardDetail() {
+  return <CardDetailInner />
 }

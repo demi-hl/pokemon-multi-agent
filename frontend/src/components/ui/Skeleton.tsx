@@ -13,7 +13,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   return (
     <div
       className={cn(
-        'animate-shimmer bg-surface-elevated',
+        'skeleton-premium',
         circle ? 'rounded-full' : 'rounded-lg',
         className,
       )}

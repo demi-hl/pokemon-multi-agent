@@ -6,11 +6,12 @@ import { buttonTap } from '@/lib/animations'
 
 const variantStyles = {
   default:
-    'bg-gradient-to-r from-accent to-accent/80 text-white hover:from-accent/90 hover:to-accent/70',
+    'bg-gradient-to-r from-accent to-accent/80 text-white hover:from-accent/90 hover:to-accent/70 hover:shadow-[0_0_20px_rgba(96,165,250,0.2)]',
   outline:
-    'border border-border text-foreground hover:bg-surface-hover',
+    'border border-border text-foreground hover:bg-surface-hover hover:border-accent/30',
   ghost: 'text-foreground hover:bg-surface-hover',
-  danger: 'bg-danger text-white hover:bg-danger/90',
+  danger: 'bg-danger text-white hover:bg-danger/90 hover:shadow-[0_0_20px_rgba(248,113,113,0.2)]',
+  premium: 'btn-premium text-foreground',
 } as const
 
 const sizeStyles = {

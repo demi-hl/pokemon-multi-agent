@@ -111,9 +111,19 @@ def _analyze_condition_notes(notes: str) -> Tuple[float, Dict[str, any]]:
         Tuple of (grade_score, analysis_dict)
     """
     notes_lower = notes.lower()
+
+    # Strip checklist-format phrases so they don't trigger keyword matching
+    # e.g. "Centering: Good condition" should not match "good" as a defect
+    notes_for_keywords = re.sub(
+        r'(centering|corners|edges|surface)\s*:\s*(good condition|may have issues)',
+        '', notes_lower
+    )
+    # Also strip "additional notes:" prefix
+    notes_for_keywords = re.sub(r'additional notes:\s*', '', notes_for_keywords)
+
     score_adjustment = 0
     factors_found = []
-    
+
     # Check for explicit grade mentions
     explicit_grade = None
     grade_patterns = [
@@ -130,9 +140,9 @@ def _analyze_condition_notes(notes: str) -> Tuple[float, Dict[str, any]]:
             factors_found.append(f"Explicit grade mention: {explicit_grade}")
             break
     
-    # Analyze keywords
+    # Analyze keywords (use cleaned text to avoid checklist false positives)
     for keyword, impact in CONDITION_KEYWORDS.items():
-        if keyword in notes_lower:
+        if keyword in notes_for_keywords:
             score_adjustment += impact
             if impact < -2:
                 severity = "major"
@@ -219,37 +229,58 @@ def estimate_grade(condition_notes: str) -> str:
 
 def assess_condition(notes: str) -> dict:
     """
-    Return detailed condition assessment.
-    
+    Return detailed condition assessment matching frontend GradeEstimate interface.
+
     Returns:
-        Dict with grade, confidence, factors, and recommendations
+        Dict with estimated_grade, confidence (0-100), subgrades, defects
     """
     if not notes or not notes.strip():
         return {
-            "grade": None,
-            "label": "Unknown",
-            "confidence": "none",
-            "factors": [],
+            "estimated_grade": None,
+            "confidence": 0,
+            "subgrades": {},
+            "defects": [],
             "recommendation": "Provide condition notes for assessment"
         }
-    
+
     score, analysis = _analyze_condition_notes(notes)
     grade = _score_to_grade(score)
-    
-    # Determine confidence
+
+    # Determine confidence as percentage
     if analysis["explicit_grade"]:
-        confidence = "high"
+        confidence_pct = 90
     elif len(analysis["factors"]) >= 3:
-        confidence = "high"
+        confidence_pct = 85
     elif len(analysis["factors"]) >= 1:
-        confidence = "moderate"
+        confidence_pct = 65
     else:
-        confidence = "low"
-    
+        confidence_pct = 40
+
+    # Build subgrades from checklist items in the notes
+    notes_lower = notes.lower()
+    subgrades = {}
+
+    # Parse checklist-style notes: "Centering: Good condition" vs "Centering: May have issues"
+    for aspect in ["centering", "corners", "edges", "surface"]:
+        if f"{aspect}: good" in notes_lower:
+            subgrades[aspect] = min(10.0, score + 0.5)
+        elif f"{aspect}: may have issues" in notes_lower or f"{aspect}: issue" in notes_lower:
+            subgrades[aspect] = max(1.0, score - 1.0)
+        else:
+            # Default subgrades based on overall score with slight variance
+            subgrades[aspect] = round(max(1.0, min(10.0, score + (hash(aspect) % 3 - 1) * 0.3)), 1)
+
+    # Extract defects from negative factors
+    defects = []
+    for factor in analysis["factors"]:
+        if factor.startswith("major:") or factor.startswith("minor:"):
+            # Clean up the factor string for display
+            keyword = factor.split("'")[1] if "'" in factor else factor.split(":")[1].strip()
+            defects.append(keyword.capitalize())
+
     # Generate recommendation
     major_defects = [f for f in analysis["factors"] if "major" in f]
     if major_defects:
-        # Rough heuristic: each major defect tends to reduce value materially.
         impact_low = 20 * len(major_defects)
         impact_high = 40 * len(major_defects)
         recommendation = (
@@ -264,18 +295,19 @@ def assess_condition(notes: str) -> dict:
         recommendation = "Moderate wear. Only grade if card is rare/valuable."
     else:
         recommendation = "Significant wear. Grading likely not recommended unless very rare."
-    
+
     return {
-        "grade": grade.numeric,
+        "estimated_grade": round(score, 1),
+        "confidence": confidence_pct,
+        "subgrades": subgrades,
+        "defects": defects,
         "label": grade.label,
-        "confidence": confidence,
-        "factors": analysis["factors"],
+        "recommendation": recommendation,
         "score_breakdown": {
             "base": analysis["base_grade"],
             "adjustment": analysis["score_adjustment"],
             "final": round(score, 1)
         },
-        "recommendation": recommendation
     }
 
 

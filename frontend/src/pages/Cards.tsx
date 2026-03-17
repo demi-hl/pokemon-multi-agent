@@ -53,7 +53,7 @@ export default function Cards() {
 
   return (
     <PageTransition>
-      <div className="space-y-6">
+      <div className="space-y-6 mesh-gradient">
         {/* Header */}
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-[-0.02em] text-foreground">Card Lookup</h1>
@@ -93,7 +93,7 @@ export default function Cards() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="w-full h-10 pl-10 pr-4 bg-surface border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:border-accent focus:ring-1 focus:ring-accent/50 outline-none transition"
+                  className="w-full h-10 pl-10 pr-4 bg-surface border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:border-accent focus:ring-2 focus:ring-accent/30 focus:shadow-[0_0_20px_rgba(96,165,250,0.15)] outline-none transition-all duration-300"
                 />
               </div>
 
@@ -136,48 +136,55 @@ export default function Cards() {
               animate="animate"
               className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
             >
-              {results.map((card) => (
-                <motion.div key={card.id} variants={staggerItem}>
-                  <Card
-                    hover
-                    className="cursor-pointer overflow-hidden group"
-                    onClick={() => navigate(`/cards/${card.id}`)}
-                  >
-                    {/* Card Image */}
-                    <div className="aspect-[2.5/3.5] bg-gradient-to-br from-surface-hover to-surface relative overflow-hidden">
-                      {card.image ? (
-                        <img
-                          src={card.image}
-                          alt={card.name}
-                          className="absolute inset-0 w-full h-full object-contain"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <CreditCard className="w-12 h-12 text-border-light opacity-50" />
+              {results.map((card) => {
+                const isExpensive = (card.price ?? 0) > 20
+                return (
+                  <motion.div key={card.id} variants={staggerItem}>
+                    <Card
+                      hover
+                      className={`cursor-pointer overflow-hidden group hover-lift holo-shine ${isExpensive ? 'gradient-border' : ''}`}
+                      onClick={() => navigate(`/cards/${card.id}`)}
+                    >
+                      {/* Card Image */}
+                      <div className="img-zoom-frame">
+                        <div className="aspect-[2.5/3.5] bg-gradient-to-br from-surface-hover to-surface relative overflow-hidden">
+                          {card.image ? (
+                            <img
+                              src={card.image}
+                              alt={card.name}
+                              width={250}
+                              height={350}
+                              className="absolute inset-0 w-full h-full object-contain"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <CreditCard className="w-12 h-12 text-border-light opacity-50" />
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-
-                    {/* Card Info */}
-                    <CardContent className="p-3 space-y-1.5">
-                      <h3 className="text-sm font-semibold truncate">{card.name}</h3>
-                      <p className="text-xs text-muted truncate">{card.set} · {card.number}</p>
-                      <div className="flex items-center justify-between">
-                        <Badge variant={rarityColor(card.rarity)} className="text-[10px]">
-                          {card.rarity}
-                        </Badge>
-                        {card.price != null && (
-                          <span className="text-sm font-mono-numbers font-bold text-accent">
-                            ${formatPrice(card.price)}
-                          </span>
-                        )}
                       </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+
+                      {/* Card Info */}
+                      <CardContent className="p-3 space-y-1.5">
+                        <h3 className="text-sm font-semibold truncate">{card.name}</h3>
+                        <p className="text-xs text-muted truncate">{card.set} · {card.number}</p>
+                        <div className="flex items-center justify-between">
+                          <Badge variant={rarityColor(card.rarity)} className="text-[10px]">
+                            {card.rarity}
+                          </Badge>
+                          {card.price != null && (
+                            <span className={`text-sm font-mono-numbers font-bold text-accent ${isExpensive ? 'text-glow' : ''}`}>
+                              ${formatPrice(card.price)}
+                            </span>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )
+              })}
             </motion.div>
           </>
         ) : hasSearched ? (
@@ -187,12 +194,17 @@ export default function Cards() {
             description="Try adjusting your search query or filters"
           />
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <motion.div
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          >
             {POPULAR_SETS.map((set) => (
               <Card
                 key={set}
                 hover
-                className="cursor-pointer"
+                className="cursor-pointer hover-lift holo-shine"
                 onClick={() => { setQuery(set); setActiveQuery(set) }}
               >
                 <CardContent className="p-4 text-center">
@@ -204,7 +216,7 @@ export default function Cards() {
                 </CardContent>
               </Card>
             ))}
-          </div>
+          </motion.div>
         )}
       </div>
     </PageTransition>

@@ -50,7 +50,7 @@ export default function PriceTag({
           className={cn(
             'flex items-center gap-0.5 font-medium',
             styles.change,
-            isPositive && 'text-emerald-400',
+            isPositive && 'text-red-400',
             isNegative && 'text-red-400',
             isNeutral && 'text-muted'
           )}

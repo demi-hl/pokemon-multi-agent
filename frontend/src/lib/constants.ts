@@ -1,5 +1,5 @@
 export const RETAILERS = [
-  { id: 'all', name: 'All Retailers', color: '#60a5fa' },
+  { id: 'all', name: 'All Retailers', color: '#ef4444' },
   { id: 'target', name: 'Target', color: '#cc0000' },
   { id: 'walmart', name: 'Walmart', color: '#0071dc' },
   { id: 'amazon', name: 'Amazon', color: '#ff9900' },
@@ -21,7 +21,7 @@ export const GRADE_TYPES = [
 
 export const GRADING_COMPANIES = [
   { value: 'PSA', label: 'PSA', color: '#ef4444' },
-  { value: 'CGC', label: 'CGC', color: '#3b82f6' },
+  { value: 'CGC', label: 'CGC', color: '#dc2626' },
   { value: 'BGS', label: 'BGS', color: '#a855f7' },
 ] as const
 
@@ -34,7 +34,7 @@ export const TIME_RANGES = [
 ] as const
 
 export const CHART_COLORS = {
-  line: '#60a5fa',
+  line: '#ef4444',
   fill: 'rgba(96, 165, 250, 0.08)',
   grid: '#162550',
   text: '#7e92b8',
@@ -43,20 +43,20 @@ export const CHART_COLORS = {
 
 /* ── Multi-dataset graded price chart colors ── */
 export const GRADE_DATASETS = [
-  { key: 'raw',    label: 'Raw',              color: '#60a5fa' },
+  { key: 'raw',    label: 'Raw',              color: '#ef4444' },
   { key: 'psa10',  label: 'PSA 10',           color: '#f43f5e' },
   { key: 'psa9',   label: 'PSA 9',            color: '#f97316' },
   { key: 'psa8',   label: 'PSA 8',            color: '#eab308' },
-  { key: 'cgc10',  label: 'CGC 10',           color: '#22c55e' },
+  { key: 'cgc10',  label: 'CGC 10',           color: '#ef4444' },
   { key: 'bgs10',  label: 'BGS 10 / Black Label', color: '#a855f7' },
 ] as const
 
 export const GRADED_CHART_COLORS: Record<string, string> = {
-  raw:   '#60a5fa',
+  raw:   '#ef4444',
   psa10: '#f43f5e',
   psa9:  '#f97316',
   psa8:  '#eab308',
-  cgc10: '#22c55e',
+  cgc10: '#ef4444',
   bgs10: '#a855f7',
 } as const
 

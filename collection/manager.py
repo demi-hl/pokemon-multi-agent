@@ -76,7 +76,7 @@ def init_collection_tables() -> None:
         """)
         conn.commit()
     finally:
-        conn.close()
+        pass  # Connection reused via pooling
 
 
 def add_to_collection(
@@ -121,7 +121,7 @@ def add_to_collection(
         print(f"Error adding to collection: {e}")
         return False
     finally:
-        conn.close()
+        pass  # Connection reused via pooling
 
 
 def remove_from_collection(user_id: str, card_id: str, condition: Optional[str] = None) -> bool:
@@ -141,7 +141,7 @@ def remove_from_collection(user_id: str, card_id: str, condition: Optional[str] 
         conn.commit()
         return True
     finally:
-        conn.close()
+        pass  # Connection reused via pooling
 
 
 def update_quantity(user_id: str, card_id: str, condition: str, quantity: int) -> bool:
@@ -158,7 +158,7 @@ def update_quantity(user_id: str, card_id: str, condition: str, quantity: int) -
         conn.commit()
         return True
     finally:
-        conn.close()
+        pass  # Connection reused via pooling
 
 
 def get_collection(user_id: str, set_id: Optional[str] = None) -> List[dict]:
@@ -192,40 +192,53 @@ def get_collection(user_id: str, set_id: Optional[str] = None) -> List[dict]:
         
         return items
     finally:
-        conn.close()
+        pass  # Connection reused via pooling
 
 
 def get_portfolio_summary(user_id: str) -> dict:
-    """Get portfolio summary with total value and stats."""
-    items = get_collection(user_id)
-    
-    total_value = 0.0
-    total_cost = 0.0
-    total_cards = 0
+    """Get portfolio summary with total value and stats via SQL aggregation."""
+    conn = get_connection()
+    # Single SQL aggregation instead of fetching all rows into Python
+    row = conn.execute(
+        """SELECT
+             COALESCE(SUM(COALESCE(cr.tcgplayer_market, cr.tcgplayer_mid, 0) * uc.quantity), 0),
+             COALESCE(SUM(COALESCE(uc.purchase_price, 0) * uc.quantity), 0),
+             COALESCE(SUM(uc.quantity), 0),
+             COUNT(DISTINCT uc.id)
+           FROM user_collections uc
+           JOIN cards cr ON uc.card_id = cr.id
+           WHERE uc.user_id = ?""",
+        (user_id,),
+    ).fetchone()
+
+    total_value = row[0]
+    total_cost = row[1]
+    total_cards = row[2]
+    unique_cards = row[3]
+
+    # Set and rarity breakdowns in one query
     set_counts: Dict[str, int] = {}
     rarity_counts: Dict[str, int] = {}
-    
-    for item in items:
-        qty = item.get("quantity", 1)
-        current_price = item.get("tcgplayer_market") or item.get("tcgplayer_mid") or 0
-        purchase_price = item.get("purchase_price") or 0
-        
-        total_value += current_price * qty
-        total_cost += purchase_price * qty
-        total_cards += qty
-        
-        set_id = item.get("set_id", "unknown")
-        rarity = item.get("rarity", "unknown")
-        
-        set_counts[set_id] = set_counts.get(set_id, 0) + qty
-        rarity_counts[rarity] = rarity_counts.get(rarity, 0) + qty
-    
+    for r in conn.execute(
+        """SELECT cr.set_id, cr.rarity, SUM(uc.quantity) as qty
+           FROM user_collections uc
+           JOIN cards cr ON uc.card_id = cr.id
+           WHERE uc.user_id = ?
+           GROUP BY cr.set_id, cr.rarity""",
+        (user_id,),
+    ).fetchall():
+        sid = r[0] or "unknown"
+        rar = r[1] or "unknown"
+        qty = r[2]
+        set_counts[sid] = set_counts.get(sid, 0) + qty
+        rarity_counts[rar] = rarity_counts.get(rar, 0) + qty
+
     return {
         "total_value": round(total_value, 2),
         "total_cost": round(total_cost, 2) if total_cost > 0 else None,
         "profit_loss": round(total_value - total_cost, 2) if total_cost > 0 else None,
         "total_cards": total_cards,
-        "unique_cards": len(items),
+        "unique_cards": unique_cards,
         "sets": set_counts,
         "rarities": rarity_counts,
         "roi_percent": round(((total_value - total_cost) / total_cost) * 100, 2) if total_cost > 0 else None
@@ -246,37 +259,40 @@ def record_portfolio_value(user_id: str) -> bool:
         conn.commit()
         return True
     finally:
-        conn.close()
+        pass  # Connection reused via pooling
 
 
 def get_portfolio_history(user_id: str, days: int = 30) -> List[dict]:
     """Get portfolio value history."""
     conn = get_connection()
-    try:
-        cur = conn.execute(
-            """SELECT total_value, total_cards, recorded_at
-               FROM portfolio_history
-               WHERE user_id = ? AND recorded_at >= datetime('now', '-{} days')
-               ORDER BY recorded_at ASC""".format(days),
-            (user_id,)
-        )
-        return [dict(row) for row in cur.fetchall()]
-    finally:
-        conn.close()
+    # Use parameterized query instead of string formatting (fixes SQL injection)
+    cur = conn.execute(
+        """SELECT total_value, total_cards, recorded_at
+           FROM portfolio_history
+           WHERE user_id = ? AND recorded_at >= datetime('now', '-' || ? || ' days')
+           ORDER BY recorded_at ASC""",
+        (user_id, days)
+    )
+    return [dict(row) for row in cur.fetchall()]
 
 
 def get_collection_stats() -> dict:
-    """Get global collection statistics."""
+    """Get global collection statistics via single SQL aggregation."""
     conn = get_connection()
-    try:
-        users = conn.execute("SELECT COUNT(DISTINCT user_id) FROM user_collections").fetchone()[0]
-        total_cards = conn.execute("SELECT SUM(quantity) FROM user_collections").fetchone()[0] or 0
-        unique_cards = conn.execute("SELECT COUNT(DISTINCT card_id) FROM user_collections").fetchone()[0]
-        
-        return {
-            "total_users": users,
-            "total_cards": total_cards,
-            "unique_cards_tracked": unique_cards
-        }
-    finally:
-        conn.close()
+    row = conn.execute(
+        """SELECT
+             COUNT(DISTINCT uc.user_id),
+             COALESCE(SUM(uc.quantity), 0),
+             COUNT(DISTINCT uc.card_id),
+             COALESCE(SUM(COALESCE(c.tcgplayer_market, 0) * COALESCE(uc.quantity, 1)), 0)
+           FROM user_collections uc
+           LEFT JOIN cards c ON uc.card_id = c.id"""
+    ).fetchone()
+
+    return {
+        "total_users": row[0],
+        "total_cards": row[1],
+        "total_items": row[1],
+        "total_value": round(row[3], 2),
+        "unique_cards_tracked": row[2],
+    }

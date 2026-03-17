@@ -1,27 +1,22 @@
 import { useState, useMemo } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
-  BarChart3, ShoppingCart, Target, Crosshair, Clock, Plus, Play,
+  BarChart3, ShoppingCart, Target, Crosshair,
   TrendingUp, DollarSign, Package, Layers, ArrowUpRight, ArrowDownRight,
-  PieChart as PieIcon, Calendar, Filter
+  PieChart as PieIcon
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  PieChart, Pie, Cell, AreaChart, Area, LineChart, Line
+  PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts'
 import { PageTransition } from '@/components/layout/PageTransition'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
-import { Badge } from '@/components/ui/Badge'
-import { Progress } from '@/components/ui/Progress'
 import { staggerContainer, staggerItem } from '@/lib/animations'
 import { formatPrice } from '@/lib/utils'
-import { RETAILERS, CHART_COLORS } from '@/lib/constants'
+import { CHART_COLORS } from '@/lib/constants'
 import { useCollection, usePortfolio, useStats } from '@/hooks/useApi'
 
-const PIE_COLORS = ['#60a5fa', '#818cf8', '#34d399', '#22d3ee', '#a78bfa', '#67e8f9', '#f472b6']
+const PIE_COLORS = ['#ef4444', '#818cf8', '#ef4444', '#22d3ee', '#a78bfa', '#67e8f9', '#f472b6']
 
 type TimeRange = '7d' | '30d' | '90d' | 'all'
 
@@ -64,7 +59,7 @@ export default function Analytics() {
       { range: '$250+', min: 250, max: Infinity, count: 0 },
     ]
     items.forEach(item => {
-      const price = item.current_price ?? 0
+      const price = item.tcgplayer_market ?? item.current_price ?? 0
       const bucket = priceBuckets.find(b => price >= b.min && price < b.max)
       if (bucket) bucket.count += item.quantity
     })
@@ -73,7 +68,7 @@ export default function Analytics() {
     const performers = items
       .map(item => {
         const cost = (item.purchase_price ?? 0) * item.quantity
-        const current = (item.current_price ?? 0) * item.quantity
+        const current = (item.tcgplayer_market ?? item.current_price ?? 0) * item.quantity
         const gain = current - cost
         const pct = cost > 0 ? ((gain / cost) * 100) : 0
         return { ...item, gain, pct, current, cost }
@@ -83,15 +78,15 @@ export default function Analytics() {
     const topGainers = performers.filter(p => p.gain > 0).slice(0, 5)
     const topLosers = performers.filter(p => p.gain < 0).sort((a, b) => a.gain - b.gain).slice(0, 5)
 
-    // Value timeline
-    const timeline = history.map(h => ({
-      date: new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      value: h.value,
+    // Value timeline — API returns recorded_at + total_value
+    const timeline = history.map((h: any) => ({
+      date: new Date(((h.recorded_at ?? h.date) || '') as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      value: ((h.total_value ?? h.value) || 0) as number,
     }))
 
     // Most valuable single items
     const mostValuable = [...items]
-      .sort((a, b) => ((b.current_price ?? 0) * b.quantity) - ((a.current_price ?? 0) * a.quantity))
+      .sort((a, b) => ((b.tcgplayer_market ?? b.current_price ?? 0) * b.quantity) - ((a.tcgplayer_market ?? a.current_price ?? 0) * a.quantity))
       .slice(0, 5)
 
     return {
@@ -107,7 +102,7 @@ export default function Analytics() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-[-0.02em] text-foreground">Analytics</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-[-0.02em] text-foreground gradient-text">Analytics</h1>
             <p className="text-muted-foreground/60 text-sm mt-1">Portfolio insights, performance tracking, and market analysis</p>
           </div>
           <div className="flex gap-1 p-1 bg-surface rounded-xl border border-border">
@@ -152,7 +147,7 @@ export default function Analytics() {
             { label: 'Total Items', value: String(analytics.totalItems), icon: Package, color: 'warning' },
           ].map(stat => (
             <motion.div key={stat.label} variants={staggerItem}>
-              <Card variant="elevated">
+              <Card variant="elevated" className="stat-card-hover hover-lift border-beam">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <div className={`p-1.5 rounded-lg bg-${stat.color}-muted`}>
@@ -160,7 +155,10 @@ export default function Analytics() {
                     </div>
                     <span className="text-xs text-muted">{stat.label}</span>
                   </div>
-                  <p className="text-xl font-mono-numbers font-bold">{stat.value}</p>
+                  <p className={`text-xl font-mono-numbers font-bold kpi-value ${
+                    stat.label === 'P&L' ? (analytics.gainLoss >= 0 ? 'text-glow-green' : '') :
+                    stat.label === 'ROI' ? (analytics.roi >= 0 ? 'text-glow-green' : '') : ''
+                  }`}>{stat.value}</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -170,7 +168,7 @@ export default function Analytics() {
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Value Over Time */}
-          <Card variant="elevated">
+          <Card variant="elevated" className="chart-glow">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-accent" />
@@ -184,8 +182,8 @@ export default function Analytics() {
                     <AreaChart data={analytics.timeline}>
                       <defs>
                         <linearGradient id="analyticsGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.3} />
-                          <stop offset="100%" stopColor="#60a5fa" stopOpacity={0} />
+                          <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
+                          <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
@@ -196,7 +194,7 @@ export default function Analytics() {
                         itemStyle={{ color: '#f1f5f9' }}
                         formatter={(v) => [`$${formatPrice(v as number)}`, 'Value']}
                       />
-                      <Area type="monotone" dataKey="value" stroke="#60a5fa" fill="url(#analyticsGrad)" strokeWidth={2} />
+                      <Area type="monotone" dataKey="value" stroke="#ef4444" fill="url(#analyticsGrad)" strokeWidth={2} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -212,7 +210,7 @@ export default function Analytics() {
           </Card>
 
           {/* Price Distribution */}
-          <Card variant="elevated">
+          <Card variant="elevated" className="chart-glow">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Layers className="w-4 h-4 text-accent" />
@@ -231,7 +229,7 @@ export default function Analytics() {
                       itemStyle={{ color: '#f1f5f9' }}
                       formatter={(v) => [v, 'Cards']}
                     />
-                    <Bar dataKey="count" fill="#60a5fa" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="count" fill="#ef4444" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -242,7 +240,7 @@ export default function Analytics() {
         {/* Second Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Condition Distribution */}
-          <Card variant="elevated">
+          <Card variant="elevated" className="chart-glow hover-lift">
             <CardHeader>
               <CardTitle className="text-base">Condition Mix</CardTitle>
             </CardHeader>
@@ -286,11 +284,11 @@ export default function Analytics() {
           </Card>
 
           {/* Top Gainers */}
-          <Card variant="elevated">
+          <Card variant="elevated" className="hover-lift">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <ArrowUpRight className="w-4 h-4 text-success" />
-                Top Gainers
+                <span className="gradient-text">Top Gainers</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -306,10 +304,10 @@ export default function Analytics() {
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-xs font-mono text-muted w-5">{i + 1}.</span>
-                        <span className="text-sm font-medium truncate">{item.card_id}</span>
+                        <span className="text-sm font-medium truncate">{item.card_name || item.card_id}</span>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs font-mono-numbers font-bold text-success">
+                        <p className="text-xs font-mono-numbers font-bold text-success text-glow-green">
                           +${formatPrice(item.gain)}
                         </p>
                         <p className="text-[10px] text-success">+{item.pct.toFixed(1)}%</p>
@@ -326,7 +324,7 @@ export default function Analytics() {
           </Card>
 
           {/* Most Valuable */}
-          <Card variant="elevated">
+          <Card variant="elevated" className="hover-lift">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-accent" />
@@ -347,12 +345,12 @@ export default function Analytics() {
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-xs font-mono text-muted w-5">{i + 1}.</span>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{item.card_id}</p>
+                          <p className="text-sm font-medium truncate">{item.card_name || item.card_id}</p>
                           <p className="text-[10px] text-muted">{item.condition} {item.quantity > 1 ? `x${item.quantity}` : ''}</p>
                         </div>
                       </div>
                       <span className="text-sm font-mono-numbers font-bold text-accent">
-                        ${formatPrice((item.current_price ?? 0) * item.quantity)}
+                        ${formatPrice((item.tcgplayer_market ?? item.current_price ?? 0) * item.quantity)}
                       </span>
                     </motion.div>
                   ))}
@@ -377,23 +375,23 @@ export default function Analytics() {
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Crosshair className="w-4 h-4 text-accent" />
-                  System Stats
+                  <span className="gradient-text">System Stats</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {Object.entries(statsData.collections || {}).map(([key, value]) => (
-                    <div key={key} className="p-3 rounded-lg bg-surface border border-border">
+                    <div key={key} className="p-3 rounded-lg bg-surface border border-border hover-lift stat-card-hover">
                       <p className="text-xs text-muted capitalize">{key.replace(/_/g, ' ')}</p>
-                      <p className="text-lg font-mono-numbers font-bold mt-1">
+                      <p className="text-lg font-mono-numbers font-bold mt-1 kpi-value">
                         {typeof value === 'number' ? formatPrice(value) : String(value)}
                       </p>
                     </div>
                   ))}
                   {Object.entries(statsData.alerts || {}).map(([key, value]) => (
-                    <div key={key} className="p-3 rounded-lg bg-surface border border-border">
+                    <div key={key} className="p-3 rounded-lg bg-surface border border-border hover-lift stat-card-hover">
                       <p className="text-xs text-muted capitalize">{key.replace(/_/g, ' ')}</p>
-                      <p className="text-lg font-mono-numbers font-bold mt-1">
+                      <p className="text-lg font-mono-numbers font-bold mt-1 kpi-value">
                         {typeof value === 'number' ? formatPrice(value) : String(value)}
                       </p>
                     </div>

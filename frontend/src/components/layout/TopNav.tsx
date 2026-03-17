@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Sun, Moon, Bell, Search, User, LogIn, Wifi, WifiOff,
+  Sun, Moon, Bell, Search, User, LogIn, Wifi, WifiOff, Wallet, LogOut,
   LayoutDashboard, CreditCard, Database, Flame, Calculator,
   Sparkles, MessageSquare, PieChart, BarChart3, MapPin, Settings,
 } from 'lucide-react'
@@ -75,32 +75,74 @@ export default function TopNav() {
         {/* Subtle top gradient line */}
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
 
-        <div className="h-14 bg-background/70 backdrop-blur-2xl border-b border-white/[0.06]">
+        <div className="h-16 sm:h-18 bg-background/70 backdrop-blur-2xl border-b border-white/[0.06]">
           <div className="max-w-[1440px] mx-auto h-full flex items-center justify-between px-5 sm:px-8">
 
             {/* ── Brand ── */}
             <motion.button
               onClick={() => navigate('/')}
-              className="flex items-center gap-3 group"
+              className="flex items-center gap-3.5 group"
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
             >
-              {/* Pokeball icon */}
+              {/* Pokeball icon — outline SVG style */}
               <div className="relative">
-                <div className="w-8 h-8 rounded-full border-2 border-accent/60 group-hover:border-accent transition-colors duration-300 flex items-center justify-center overflow-hidden">
-                  <div className="absolute top-0 left-0 right-0 h-1/2 bg-accent/10" />
-                  <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-transparent" />
-                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[2px] bg-accent/30" />
-                  <div className="relative w-2.5 h-2.5 rounded-full border-2 border-accent/60 bg-background group-hover:bg-accent/20 transition-colors duration-300" />
-                </div>
+                <svg
+                  viewBox="0 0 100 100"
+                  className="w-11 h-11 sm:w-12 sm:h-12 drop-shadow-[0_0_15px_rgba(239,68,68,0.15)] group-hover:drop-shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all duration-300"
+                >
+                  {/* Top half arc — red outline */}
+                  <path
+                    d="M 4 50 A 46 46 0 0 1 96 50"
+                    fill="none"
+                    stroke="#ef4444"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    className="group-hover:stroke-red-400 transition-colors duration-300"
+                  />
+                  {/* Bottom half arc — white outline */}
+                  <path
+                    d="M 96 50 A 46 46 0 0 1 4 50"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.9)"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                  />
+                  {/* Center line */}
+                  <line
+                    x1="4"
+                    y1="50"
+                    x2="96"
+                    y2="50"
+                    stroke="#52525b"
+                    strokeWidth="4"
+                  />
+                  {/* Center circle outer ring */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="12"
+                    fill="none"
+                    stroke="#52525b"
+                    strokeWidth="4"
+                  />
+                  {/* Center circle inner */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="5"
+                    fill="white"
+                    className="group-hover:filter group-hover:drop-shadow-[0_0_6px_rgba(255,255,255,0.5)]"
+                  />
+                </svg>
                 {/* Ambient glow */}
-                <div className="absolute -inset-1 rounded-full bg-accent/10 blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute -inset-2 rounded-full bg-red-500/15 blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               </div>
               <div className="hidden sm:flex flex-col">
-                <span className="text-sm font-bold tracking-tight text-foreground leading-none">
-                  Poke<span className="text-accent">Agent</span>
+                <span className="text-lg sm:text-xl font-bold tracking-tight text-foreground leading-none">
+                  Poke<span className="text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.4)]">Agent</span>
                 </span>
-                <span className="text-[9px] font-medium tracking-[0.2em] uppercase text-muted-foreground/50 leading-none mt-0.5">
+                <span className="text-[10px] sm:text-[11px] font-medium tracking-[0.2em] uppercase text-muted-foreground/50 leading-none mt-1">
                   TCG Intelligence
                 </span>
               </div>
@@ -132,22 +174,22 @@ export default function TopNav() {
               <div className={cn(
                 'hidden sm:flex items-center gap-1.5 mr-2 px-2.5 py-1 rounded-lg border',
                 isConnected
-                  ? 'bg-emerald-500/[0.08] border-emerald-500/[0.12]'
+                  ? 'bg-red-500/[0.08] border-red-500/[0.12]'
                   : 'bg-rose-500/[0.08] border-rose-500/[0.12]'
               )}>
                 <span className="relative flex h-1.5 w-1.5">
                   <span className={cn(
                     'animate-ping absolute inline-flex h-full w-full rounded-full opacity-60',
-                    isConnected ? 'bg-emerald-400' : 'bg-rose-400'
+                    isConnected ? 'bg-red-400' : 'bg-rose-400'
                   )} />
                   <span className={cn(
                     'relative inline-flex rounded-full h-1.5 w-1.5',
-                    isConnected ? 'bg-emerald-400' : 'bg-rose-400'
+                    isConnected ? 'bg-red-400' : 'bg-rose-400'
                   )} />
                 </span>
                 <span className={cn(
                   'text-[10px] font-medium',
-                  isConnected ? 'text-emerald-400/80' : 'text-rose-400/80'
+                  isConnected ? 'text-red-400/80' : 'text-rose-400/80'
                 )}>
                   {isConnected ? 'Live' : 'Offline'}
                 </span>
@@ -181,27 +223,9 @@ export default function TopNav() {
               </button>
 
               {/* User */}
-              {isAuthenticated && user ? (
-                <button className="h-9 flex items-center gap-2 rounded-xl px-2 text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.04] transition-all duration-200">
-                  {user.avatar ? (
-                    <img src={user.avatar} alt="" className="h-6 w-6 rounded-full ring-1 ring-white/10" />
-                  ) : (
-                    <div className="h-6 w-6 rounded-full bg-gradient-to-br from-accent/30 to-accent/10 flex items-center justify-center text-[10px] font-bold text-accent ring-1 ring-accent/20">
-                      {user.username?.[0]?.toUpperCase()}
-                    </div>
-                  )}
-                </button>
-              ) : (
-                <motion.button
-                  onClick={() => navigate('/login')}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="h-8 flex items-center gap-1.5 rounded-lg px-3 text-[11px] font-semibold bg-accent/90 text-white hover:bg-accent shadow-[0_0_20px_rgba(96,165,250,0.15)] hover:shadow-[0_0_25px_rgba(96,165,250,0.25)] transition-all duration-300"
-                >
-                  <LogIn className="h-3 w-3" />
-                  <span className="hidden sm:inline">Sign in</span>
-                </motion.button>
-              )}
+              <button className="h-9 w-9 flex items-center justify-center rounded-xl text-muted-foreground/60 hover:text-foreground hover:bg-white/[0.04] transition-all duration-200">
+                <User className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </div>
@@ -228,14 +252,14 @@ export default function TopNav() {
                   className="relative shrink-0 group"
                 >
                   <div className={cn(
-                    'flex items-center gap-1.5 px-3 py-2.5 text-[11px] font-medium tracking-wide transition-all duration-300',
+                    'flex items-center gap-2.5 px-4 py-3.5 text-sm font-medium tracking-wide transition-all duration-300',
                     isActive
                       ? 'text-accent'
                       : 'text-muted-foreground/50 hover:text-foreground/80'
                   )}>
                     {Icon && (
                       <Icon className={cn(
-                        'h-3 w-3 transition-all duration-300',
+                        'h-4 w-4 transition-all duration-300',
                         isActive ? 'text-accent' : 'text-muted-foreground/40 group-hover:text-foreground/60'
                       )} />
                     )}

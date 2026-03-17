@@ -64,32 +64,41 @@ def search_cards(
             cur = conn.execute(sql, params)
             return [dict(row) for row in cur.fetchall()]
         
-        # For longer queries, fetch candidates and rank by similarity
-        sql += f" ORDER BY tcgplayer_market DESC NULLS LAST LIMIT 200"
-        cur = conn.execute(sql, params)
+        # For longer queries, first try LIKE filter to narrow candidates via index
+        like_sql = sql + " AND name LIKE ?"
+        like_params = params + [f"%{query}%"]
+        like_sql += " ORDER BY tcgplayer_market DESC NULLS LAST LIMIT 100"
+        cur = conn.execute(like_sql, like_params)
         candidates = [dict(row) for row in cur.fetchall()]
-        
-        # Score by similarity
+
+        # If LIKE found too few, fall back to broader search
+        if len(candidates) < 3:
+            sql += " ORDER BY tcgplayer_market DESC NULLS LAST LIMIT 100"
+            cur = conn.execute(sql, params)
+            candidates = [dict(row) for row in cur.fetchall()]
+
+        # Score by similarity — fast checks first, expensive SequenceMatcher only if needed
         normalized_query = _normalize(query)
         scored = []
         for card in candidates:
             name = card.get("name", "")
+            normalized_name = _normalize(name)
+
+            if normalized_name == normalized_query:
+                scored.append((1.5, card))
+                continue
+            if normalized_name.startswith(normalized_query):
+                scored.append((1.3, card))
+                continue
+
             score = _similarity(name, query)
-            
-            # Boost exact matches and starts-with
-            if _normalize(name) == normalized_query:
-                score += 0.5
-            elif _normalize(name).startswith(normalized_query):
-                score += 0.3
-            
-            if score > 0.3:  # Threshold
+            if score > 0.3:
                 scored.append((score, card))
-        
-        # Sort by score and return top results
+
         scored.sort(key=lambda x: x[0], reverse=True)
         return [card for _, card in scored[:limit]]
     finally:
-        conn.close()
+        pass  # Connection reused via pooling
 
 
 def search_by_card_number(set_id: str, number: str) -> Optional[dict]:
@@ -116,7 +125,7 @@ def search_by_card_number(set_id: str, number: str) -> Optional[dict]:
         
         return dict(row) if row else None
     finally:
-        conn.close()
+        pass  # Connection reused via pooling
 
 
 def get_card_by_id(card_id: str) -> Optional[dict]:
@@ -133,12 +142,13 @@ def get_card_by_id(card_id: str) -> Optional[dict]:
         row = cur.fetchone()
         return dict(row) if row else None
     finally:
-        conn.close()
+        pass  # Connection reused via pooling
 
 
-def get_related_cards(card_id: str, limit: int = 8) -> List[dict]:
-    """Get related cards (same set, similar rarity/price)."""
-    card = get_card_by_id(card_id)
+def get_related_cards(card_id: str, limit: int = 8, card: Optional[dict] = None) -> List[dict]:
+    """Get related cards (same set, similar rarity/price). Pass card to avoid duplicate lookup."""
+    if card is None:
+        card = get_card_by_id(card_id)
     if not card:
         return []
     
@@ -158,4 +168,4 @@ def get_related_cards(card_id: str, limit: int = 8) -> List[dict]:
         )
         return [dict(row) for row in cur.fetchall()]
     finally:
-        conn.close()
+        pass  # Connection reused via pooling

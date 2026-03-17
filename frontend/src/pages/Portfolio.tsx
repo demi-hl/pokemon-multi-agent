@@ -2,8 +2,8 @@ import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   PieChart as PieIcon, Plus, RefreshCw, Trash2, TrendingUp, TrendingDown,
-  DollarSign, Package, CheckCircle, Search, BarChart3, Layers, ArrowUpRight,
-  ChevronDown, ChevronUp, Target, Award, AlertCircle
+  DollarSign, Package, CheckCircle, Search, BarChart3, Layers,
+  Target, Award, AlertCircle
 } from 'lucide-react'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area,
@@ -15,17 +15,16 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Badge } from '@/components/ui/Badge'
-import { Progress } from '@/components/ui/Progress'
 import { staggerContainer, staggerItem } from '@/lib/animations'
 import { formatPrice } from '@/lib/utils'
-import { GRADE_TYPES, CHART_COLORS } from '@/lib/constants'
+import { CHART_COLORS } from '@/lib/constants'
 import {
   useCollection, usePortfolio, useAddToCollection,
   useRemoveFromCollection, useSets, useChaseCards
 } from '@/hooks/useApi'
 import { useQueryClient } from '@tanstack/react-query'
 
-const PIE_COLORS = ['#60a5fa', '#818cf8', '#34d399', '#22d3ee', '#a78bfa', '#67e8f9', '#f472b6', '#fb923c']
+const PIE_COLORS = ['#ef4444', '#818cf8', '#ef4444', '#22d3ee', '#a78bfa', '#67e8f9', '#f472b6', '#fb923c']
 
 type Tab = 'holdings' | 'completion' | 'history'
 
@@ -165,7 +164,7 @@ export default function Portfolio() {
             },
           ].map((stat) => (
             <motion.div key={stat.label} variants={staggerItem}>
-              <Card variant="elevated">
+              <Card variant="elevated" className={`stat-card-hover ${stat.label === 'Total Value' ? 'border-beam gradient-border' : ''}`}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <div className={`p-1.5 rounded-lg bg-${stat.color}-muted`}>
@@ -174,8 +173,9 @@ export default function Portfolio() {
                     <span className="text-xs text-muted">{stat.label}</span>
                   </div>
                   <p className={`text-2xl font-mono-numbers font-bold ${
+                    stat.label === 'Total Value' ? 'kpi-value text-glow' :
                     stat.label === 'Gain/Loss' || stat.label === 'ROI'
-                      ? (totalGain >= 0 ? 'text-success' : 'text-danger')
+                      ? (totalGain >= 0 ? 'text-success text-glow-green' : 'text-danger')
                       : ''
                   }`}>{stat.value}</p>
                 </CardContent>
@@ -268,7 +268,7 @@ export default function Portfolio() {
             className="grid grid-cols-1 lg:grid-cols-3 gap-6"
           >
             {/* Pie Chart */}
-            <Card variant="elevated" className="lg:col-span-1">
+            <Card variant="elevated" className="lg:col-span-1 chart-glow">
               <CardHeader><CardTitle className="text-base">Breakdown</CardTitle></CardHeader>
               <CardContent>
                 {pieData.length > 0 ? (
@@ -338,7 +338,7 @@ export default function Portfolio() {
                     const gainPct = cost > 0 ? ((gain / cost) * 100) : 0
                     return (
                       <motion.div key={`${item.card_id}-${item.condition}`} variants={staggerItem}>
-                        <Card className="hover:border-border-light transition group">
+                        <Card className="hover:border-border-light transition group hover-lift holo-shine">
                           <CardContent className="p-4 flex items-center justify-between">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
@@ -422,7 +422,7 @@ export default function Portfolio() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                 >
-                  <Card variant="elevated">
+                  <Card variant="elevated" className="gradient-border">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between mb-4">
                         <div>
@@ -447,7 +447,7 @@ export default function Portfolio() {
                           animate={{ width: `${completionStats.pct}%` }}
                           transition={{ type: 'spring', stiffness: 100, damping: 20, delay: 0.2 }}
                           className={`absolute inset-y-0 left-0 rounded-full ${
-                            completionStats.pct >= 90 ? 'bg-gradient-to-r from-success to-emerald-400' :
+                            completionStats.pct >= 90 ? 'bg-gradient-to-r from-success to-red-400' :
                             completionStats.pct >= 50 ? 'bg-gradient-to-r from-accent to-blue-400' :
                             'bg-gradient-to-r from-warning to-amber-400'
                           }`}
@@ -583,7 +583,7 @@ export default function Portfolio() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           >
-            <Card variant="elevated">
+            <Card variant="elevated" className="chart-glow">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-accent" />
@@ -597,8 +597,8 @@ export default function Portfolio() {
                       <AreaChart data={chartData}>
                         <defs>
                           <linearGradient id="portfolioGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.3} />
-                            <stop offset="100%" stopColor="#60a5fa" stopOpacity={0} />
+                            <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
+                            <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
@@ -609,7 +609,7 @@ export default function Portfolio() {
                           itemStyle={{ color: '#f1f5f9' }}
                           formatter={(v) => [`$${formatPrice(v as number)}`, 'Value']}
                         />
-                        <Area type="monotone" dataKey="value" stroke="#60a5fa" fill="url(#portfolioGrad)" strokeWidth={2} />
+                        <Area type="monotone" dataKey="value" stroke="#ef4444" fill="url(#portfolioGrad)" strokeWidth={2} />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>

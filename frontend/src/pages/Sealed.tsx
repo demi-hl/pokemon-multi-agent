@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Lock, TrendingUp, TrendingDown, DollarSign, Package,
-  Calendar, ArrowUpRight, Star, Filter, BarChart3,
+  Lock, TrendingUp, DollarSign, Package,
+  Calendar, Star, BarChart3,
 } from 'lucide-react'
 import { PageTransition } from '@/components/layout/PageTransition'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
@@ -13,9 +13,12 @@ import { staggerContainer, staggerItem } from '@/lib/animations'
 import { formatPrice } from '@/lib/utils'
 import { CHART_COLORS } from '@/lib/constants'
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  XAxis, YAxis, Tooltip, ResponsiveContainer,
   CartesianGrid, Area, AreaChart,
 } from 'recharts'
+import { useSealedProducts, useSealedPriceHistory } from '../hooks/useApi'
+import { getSealedImageUrl, PRODUCT_TYPE_INFO } from '../lib/product-images'
+import { OptimizedImage } from '../components/OptimizedImage'
 
 /* ═══════════════════════════════════════════════════════
    Sealed Product Historical Data
@@ -155,8 +158,48 @@ export default function Sealed() {
   const [categoryFilter, setCategoryFilter] = useState<string>('All')
   const [sortBy, setSortBy] = useState<'roi' | 'price' | 'name' | 'date'>('roi')
 
+  // Fetch real sealed products from API
+  const { data: sealedData } = useSealedProducts()
+
+  // Whether we have API data
+  const hasApiData = !!(sealedData?.data && sealedData.data.length > 0)
+
+  // Map API data to our SealedProduct shape, or fall back to hardcoded data
+  const products: SealedProduct[] = useMemo(() => {
+    if (hasApiData) {
+      return sealedData!.data.map((p) => {
+        // Normalize product_type: DB may have "Elite Trainer Box" but UI expects "ETB"
+        let ptype = p.product_type || 'Booster Box'
+        if (ptype === 'Elite Trainer Box') ptype = 'ETB'
+        if (ptype === 'Ultra Premium Collection') ptype = 'UPC'
+        return {
+          id: String(p.id),
+          name: p.name,
+          set: p.set_name || '',
+          type: ptype as SealedProduct['type'],
+          msrp: p.msrp ?? 0,
+          releaseDate: p.updated_at || '',
+          currentPrice: p.current_price ?? 0,
+          priceHistory: [],
+          notes: p.notes || undefined,
+        }
+      })
+    }
+    return SEALED_PRODUCTS
+  }, [hasApiData, sealedData])
+
+  // Determine numeric ID for selected product (for API price history)
+  const selectedNumericId = useMemo(() => {
+    if (!selectedProduct) return undefined
+    const prod = sealedData?.data?.find((p) => String(p.id) === selectedProduct)
+    return prod?.id
+  }, [selectedProduct, sealedData])
+
+  // Fetch price history for selected product from API
+  const { data: priceHistoryData } = useSealedPriceHistory(selectedNumericId)
+
   const filtered = useMemo(() => {
-    let list = [...SEALED_PRODUCTS]
+    let list = [...products]
     if (categoryFilter !== 'All') {
       list = list.filter((p) => p.type === categoryFilter)
     }
@@ -170,17 +213,25 @@ export default function Sealed() {
       case 'date':
         return list.sort((a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime())
     }
-  }, [categoryFilter, sortBy])
+  }, [categoryFilter, sortBy, products])
 
-  const selected = SEALED_PRODUCTS.find((p) => p.id === selectedProduct)
+  const selected = products.find((p) => p.id === selectedProduct)
+
+  // Use API price history if available, otherwise fall back to hardcoded
+  const selectedPriceHistory = useMemo(() => {
+    if (priceHistoryData?.data && priceHistoryData.data.length > 0) {
+      return priceHistoryData.data
+    }
+    return selected?.priceHistory || []
+  }, [priceHistoryData, selected])
 
   // Summary stats
-  const totalMSRP = SEALED_PRODUCTS.reduce((s, p) => s + p.msrp, 0)
-  const totalCurrent = SEALED_PRODUCTS.reduce((s, p) => s + p.currentPrice, 0)
-  const bestPerformer = [...SEALED_PRODUCTS].sort((a, b) =>
+  const totalMSRP = products.reduce((s, p) => s + p.msrp, 0)
+  const totalCurrent = products.reduce((s, p) => s + p.currentPrice, 0)
+  const bestPerformer = [...products].sort((a, b) =>
     ((b.currentPrice - b.msrp) / b.msrp) - ((a.currentPrice - a.msrp) / a.msrp)
   )[0]
-  const avgROI = ((totalCurrent - totalMSRP) / totalMSRP) * 100
+  const avgROI = totalMSRP > 0 ? ((totalCurrent - totalMSRP) / totalMSRP) * 100 : 0
 
   return (
     <PageTransition>
@@ -188,7 +239,7 @@ export default function Sealed() {
         {/* Header */}
         <div className="page-header">
           <motion.h1
-            className="text-2xl sm:text-3xl font-bold tracking-[-0.02em] text-foreground"
+            className="text-2xl sm:text-3xl font-bold tracking-[-0.02em] text-foreground gradient-text"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
@@ -212,18 +263,18 @@ export default function Sealed() {
           animate="animate"
         >
           <motion.div variants={staggerItem}>
-            <Card variant="elevated">
+            <Card variant="elevated" className="stat-card-hover">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="p-1.5 rounded-lg bg-accent-muted"><Package className="w-4 h-4 text-accent" /></div>
                   <span className="text-xs text-muted">Products Tracked</span>
                 </div>
-                <p className="text-2xl font-mono-numbers font-bold">{SEALED_PRODUCTS.length}</p>
+                <p className="text-2xl font-mono-numbers font-bold">{products.length}</p>
               </CardContent>
             </Card>
           </motion.div>
           <motion.div variants={staggerItem}>
-            <Card variant="elevated">
+            <Card variant="elevated" className="stat-card-hover">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="p-1.5 rounded-lg bg-success-muted"><TrendingUp className="w-4 h-4 text-success" /></div>
@@ -236,7 +287,7 @@ export default function Sealed() {
             </Card>
           </motion.div>
           <motion.div variants={staggerItem}>
-            <Card variant="elevated">
+            <Card variant="elevated" className="stat-card-hover">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="p-1.5 rounded-lg bg-warning-muted"><Star className="w-4 h-4 text-warning" /></div>
@@ -250,7 +301,7 @@ export default function Sealed() {
             </Card>
           </motion.div>
           <motion.div variants={staggerItem}>
-            <Card variant="elevated">
+            <Card variant="elevated" className="stat-card-hover">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="p-1.5 rounded-lg bg-info-muted"><DollarSign className="w-4 h-4 text-info" /></div>
@@ -272,7 +323,7 @@ export default function Sealed() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.4, type: 'spring', bounce: 0.15 }}
             >
-              <Card variant="elevated">
+              <Card variant="elevated" className="stat-card-hover chart-glow border-beam">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base flex items-center gap-2">
@@ -293,11 +344,11 @@ export default function Sealed() {
                 <CardContent>
                   <div className="h-[280px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={selected.priceHistory}>
+                      <AreaChart data={selectedPriceHistory}>
                         <defs>
                           <linearGradient id="sealedGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.15} />
-                            <stop offset="100%" stopColor="#60a5fa" stopOpacity={0} />
+                            <stop offset="0%" stopColor="#ef4444" stopOpacity={0.15} />
+                            <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
@@ -309,9 +360,9 @@ export default function Sealed() {
                             border: `1px solid ${CHART_COLORS.grid}`,
                             borderRadius: 12,
                           }}
-                          formatter={(value: number) => [`$${formatPrice(value)}`, 'Price']}
+                          formatter={((value: number) => [`$${formatPrice(value)}`, 'Price']) as any}
                         />
-                        <Area type="monotone" dataKey="price" stroke="#60a5fa" strokeWidth={2.5} fill="url(#sealedGrad)" />
+                        <Area type="monotone" dataKey="price" stroke="#ef4444" strokeWidth={2.5} fill="url(#sealedGrad)" />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -352,65 +403,93 @@ export default function Sealed() {
 
         {/* Product Grid */}
         <motion.div
+          key={`sealed-grid-${filtered.length}`}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           variants={staggerContainer}
           initial="initial"
           animate="animate"
         >
-          {filtered.map((product) => {
+          {filtered.map((product, idx) => {
             const roi = ((product.currentPrice - product.msrp) / product.msrp) * 100
             const isSelected = product.id === selectedProduct
             const yearsSince = (new Date().getTime() - new Date(product.releaseDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
             const annualizedROI = yearsSince > 0 ? roi / yearsSince : roi
+            const isHighValue = product.currentPrice > 150
             return (
-              <motion.div key={product.id} variants={staggerItem}>
-                <motion.button
-                  onClick={() => setSelectedProduct(isSelected ? '' : product.id)}
-                  className={`w-full text-left transition-all ${isSelected ? '' : ''}`}
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Card hover className={isSelected ? 'ring-2 ring-accent/40 border-accent/30' : ''}>
-                    <CardContent className="p-4 space-y-3">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-semibold text-sm">{product.name}</h3>
-                          <p className="text-xs text-muted mt-0.5">{product.set} · {product.type}</p>
+              <motion.div key={product.id} variants={staggerItem} initial="initial" animate="animate" transition={{ delay: idx * 0.05 }}>
+                <div className="card-3d">
+                  <motion.button
+                    onClick={() => setSelectedProduct(isSelected ? '' : product.id)}
+                    className={`w-full text-left transition-all hover-lift`}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Card hover className={`holo-shine ${isSelected ? 'ring-2 ring-accent/40 border-accent/30' : ''} ${isHighValue ? 'border-beam' : ''}`}>
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-3">
+                            {hasApiData && (
+                              <div className="img-zoom-frame">
+                                <OptimizedImage
+                                  src={getSealedImageUrl({ name: product.name, set_name: product.set, product_type: product.type })}
+                                  alt={product.name}
+                                  className="object-contain"
+                                  containerClassName="w-12 h-12 shrink-0 rounded-lg"
+                                />
+                              </div>
+                            )}
+                            <div>
+                              <h3 className="font-semibold text-sm">{product.name}</h3>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <p className="text-xs text-muted">{product.set} · {product.type}</p>
+                                {PRODUCT_TYPE_INFO[product.type] && (
+                                  <span
+                                    className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase"
+                                    style={{
+                                      color: PRODUCT_TYPE_INFO[product.type].color,
+                                      backgroundColor: PRODUCT_TYPE_INFO[product.type].bgColor,
+                                    }}
+                                  >
+                                    {PRODUCT_TYPE_INFO[product.type].label}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <Badge variant={roi >= 0 ? 'success' : 'danger'} className={`shrink-0 ${roi >= 0 ? 'text-glow-green' : 'text-glow'}`}>
+                            {roi >= 0 ? '+' : ''}{roi.toFixed(0)}%
+                          </Badge>
                         </div>
-                        <Badge variant={roi >= 0 ? 'success' : 'danger'} className="shrink-0">
-                          {roi >= 0 ? '+' : ''}{roi.toFixed(0)}%
-                        </Badge>
-                      </div>
 
-                      <div className="grid grid-cols-3 gap-2 text-center">
-                        <div>
-                          <p className="text-[10px] text-muted uppercase">MSRP</p>
-                          <p className="font-mono-numbers text-sm">${product.msrp.toFixed(2)}</p>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div>
+                            <p className="text-[10px] text-muted uppercase">MSRP</p>
+                            <p className="font-mono-numbers text-sm">${product.msrp.toFixed(2)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-muted uppercase">Current</p>
+                            <p className="font-mono-numbers text-sm font-bold text-accent">${formatPrice(product.currentPrice)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-muted uppercase">Annual</p>
+                            <p className={`font-mono-numbers text-sm ${annualizedROI >= 0 ? 'text-success text-glow-green' : 'text-danger text-glow'}`}>
+                              {annualizedROI >= 0 ? '+' : ''}{annualizedROI.toFixed(1)}%/yr
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-[10px] text-muted uppercase">Current</p>
-                          <p className="font-mono-numbers text-sm font-bold text-accent">${formatPrice(product.currentPrice)}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-muted uppercase">Annual</p>
-                          <p className={`font-mono-numbers text-sm ${annualizedROI >= 0 ? 'text-success' : 'text-danger'}`}>
-                            {annualizedROI >= 0 ? '+' : ''}{annualizedROI.toFixed(1)}%/yr
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="flex items-center justify-between text-xs text-muted">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>{new Date(product.releaseDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+                        <div className="flex items-center justify-between text-xs text-muted">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            <span>{product.releaseDate && !isNaN(new Date(product.releaseDate).getTime()) ? new Date(product.releaseDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : product.set || 'N/A'}</span>
+                          </div>
+                          <span className={`font-mono-numbers ${roi >= 0 ? 'text-success' : 'text-danger'}`}>
+                            {roi >= 0 ? '+' : ''}${formatPrice(product.currentPrice - product.msrp)}
+                          </span>
                         </div>
-                        <span className={`font-mono-numbers ${roi >= 0 ? 'text-success' : 'text-danger'}`}>
-                          {roi >= 0 ? '+' : ''}${formatPrice(product.currentPrice - product.msrp)}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.button>
+                      </CardContent>
+                    </Card>
+                  </motion.button>
+                </div>
               </motion.div>
             )
           })}
@@ -420,7 +499,7 @@ export default function Sealed() {
         <Card>
           <CardContent className="p-5">
             <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <Lock className="h-4 w-4 text-accent" /> Sealed Product Investment Tips
+              <Lock className="h-4 w-4 text-accent" /> <span className="gradient-text">Sealed Product Investment Tips</span>
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs text-muted">
               <div>

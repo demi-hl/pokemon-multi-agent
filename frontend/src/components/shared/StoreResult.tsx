@@ -59,7 +59,7 @@ export default function StoreResult({
                 <span
                   className={cn(
                     'h-2 w-2 rounded-full shrink-0',
-                    product.inStock ? 'bg-emerald-400' : 'bg-red-400'
+                    product.inStock ? 'bg-red-400' : 'bg-red-400'
                   )}
                 />
                 <div className="min-w-0">

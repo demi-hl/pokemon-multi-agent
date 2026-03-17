@@ -16,12 +16,12 @@
   --color-muted: #7e92b8;
   --color-muted-foreground: #4a6090;
 
-  --color-accent: #60a5fa;
-  --color-accent-hover: #93c5fd;
-  --color-accent-muted: rgba(96, 165, 250, 0.10);
+  --color-accent: #ef4444;
+  --color-accent-hover: #f87171;
+  --color-accent-muted: rgba(239, 68, 68, 0.10);
 
-  --color-success: #34d399;
-  --color-success-muted: rgba(52, 211, 153, 0.10);
+  --color-success: #ef4444;
+  --color-success-muted: rgba(239, 68, 68, 0.10);
   --color-warning: #fbbf24;
   --color-warning-muted: rgba(251, 191, 36, 0.10);
   --color-danger: #f87171;
@@ -29,13 +29,13 @@
   --color-info: #818cf8;
   --color-info-muted: rgba(129, 140, 248, 0.10);
 
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(96,165,250,0.02);
-  --shadow-card-hover: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(96,165,250,0.06);
-  --shadow-glow: 0 0 30px rgba(96, 165, 250, 0.10);
-  --shadow-glow-strong: 0 0 60px rgba(96, 165, 250, 0.18);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(239,68,68,0.02);
+  --shadow-card-hover: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(239,68,68,0.06);
+  --shadow-glow: 0 0 30px rgba(239, 68, 68, 0.10);
+  --shadow-glow-strong: 0 0 60px rgba(239, 68, 68, 0.18);
 }
 
 /* ── Base ── */
@@ -104,9 +104,18 @@ body::before {
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, var(--color-surface) 25%, var(--color-surface-hover) 50%, var(--color-surface) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-elevated) 25%,
+    var(--color-surface-hover) 37%,
+    var(--color-surface-elevated) 63%
+  );
   background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  animation: shimmer-enhanced 1.5s ease-in-out infinite;
+}
+@keyframes shimmer-enhanced {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 .animate-pulse-glow { animation: pulse-glow 2.5s ease-in-out infinite; }
 .animate-float { animation: float 4s ease-in-out infinite; }
@@ -114,15 +123,15 @@ body::before {
 .animate-gradient { animation: gradient-shift 6s ease infinite; background-size: 200% 200%; }
 
 /* ── Gradient Utilities ── */
-.gradient-accent { background: linear-gradient(135deg, #60a5fa 0%, #818cf8 100%); }
+.gradient-accent { background: linear-gradient(135deg, #ef4444 0%, #f97316 100%); }
 .gradient-surface { background: linear-gradient(180deg, var(--color-surface-hover) 0%, var(--color-surface) 100%); }
 .gradient-hero {
-  background: radial-gradient(ellipse at 20% 50%, rgba(96,165,250,0.06) 0%, transparent 60%),
-              radial-gradient(ellipse at 80% 20%, rgba(129,140,248,0.04) 0%, transparent 50%),
-              radial-gradient(ellipse at 50% 100%, rgba(34,211,153,0.02) 0%, transparent 40%);
+  background: radial-gradient(ellipse at 20% 50%, rgba(239,68,68,0.06) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 20%, rgba(251,146,60,0.04) 0%, transparent 50%),
+              radial-gradient(ellipse at 50% 100%, rgba(239,68,68,0.02) 0%, transparent 40%);
 }
 .gradient-text {
-  background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #22d3ee 100%);
+  background: linear-gradient(135deg, #f87171 0%, #fb923c 50%, #fbbf24 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text;
   animation: gradient-shift 4s ease infinite;
@@ -136,8 +145,8 @@ body::before {
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 .glass-card {
-  background: linear-gradient(135deg, rgba(96,165,250,0.03) 0%, rgba(255,255,255,0.01) 100%);
-  border: 1px solid rgba(96,165,250,0.06);
+  background: linear-gradient(135deg, rgba(239,68,68,0.03) 0%, rgba(255,255,255,0.01) 100%);
+  border: 1px solid rgba(239,68,68,0.06);
   backdrop-filter: blur(10px);
 }
 
@@ -145,14 +154,14 @@ body::before {
 .premium-card {
   position: relative;
   background: linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0.005) 100%);
-  border: 1px solid rgba(96,165,250,0.06);
+  border: 1px solid rgba(239,68,68,0.06);
   border-radius: 16px;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .premium-card:hover {
-  border-color: rgba(96,165,250,0.12);
-  background: linear-gradient(180deg, rgba(96,165,250,0.04) 0%, rgba(255,255,255,0.01) 100%);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(96,165,250,0.06);
+  border-color: rgba(239,68,68,0.12);
+  background: linear-gradient(180deg, rgba(239,68,68,0.04) 0%, rgba(255,255,255,0.01) 100%);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(239,68,68,0.06);
   transform: translateY(-2px);
 }
 
@@ -183,4 +192,885 @@ body::before {
   font-size: 0.875rem;
   margin-top: 0.375rem;
   line-height: 1.5;
+}
+
+/* ===== Enhanced UI Effects ===== */
+
+/* Animated gradient border */
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.gradient-border {
+  position: relative;
+  background: var(--color-surface);
+  border-radius: var(--radius, 16px);
+}
+
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(from var(--angle), #ef4444, #f97316, #fbbf24, #a855f7, #ef4444);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  animation: rotate-gradient 4s linear infinite;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gradient-border:hover::before {
+  opacity: 1;
+}
+
+@keyframes rotate-gradient {
+  to { --angle: 360deg; }
+}
+
+/* Holographic card shine */
+.holo-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.holo-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.08) 45%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.08) 55%,
+    transparent 60%
+  );
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+
+.holo-shine:hover::after {
+  transform: translateX(100%);
+}
+
+/* Price change flash */
+.price-flash-up {
+  animation: flash-green 1s ease-out;
+}
+
+.price-flash-down {
+  animation: flash-red 1s ease-out;
+}
+
+@keyframes flash-green {
+  0% { background-color: rgba(239, 68, 68, 0.3); }
+  100% { background-color: transparent; }
+}
+
+@keyframes flash-red {
+  0% { background-color: rgba(248, 113, 113, 0.3); }
+  100% { background-color: transparent; }
+}
+
+/* Animated number transition */
+.number-transition {
+  display: inline-block;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* Glow effect on accent elements */
+.glow-accent {
+  box-shadow: 0 0 15px -3px rgba(239, 68, 68, 0.3);
+  transition: box-shadow 0.3s ease;
+}
+
+.glow-accent:hover {
+  box-shadow: 0 0 25px -3px rgba(239, 68, 68, 0.5);
+}
+
+/* Glow by color */
+.glow-success { box-shadow: 0 0 15px -3px rgba(239, 68, 68, 0.3); }
+.glow-danger { box-shadow: 0 0 15px -3px rgba(248, 113, 113, 0.3); }
+.glow-warning { box-shadow: 0 0 15px -3px rgba(251, 191, 36, 0.3); }
+
+/* Noise texture overlay */
+.noise-overlay {
+  position: relative;
+}
+
+.noise-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Live pulse indicator */
+.live-pulse {
+  position: relative;
+}
+
+.live-pulse::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+/* ===== Enhanced UI Effects ===== */
+
+/* Animated gradient border */
+.gradient-border-enhanced {
+  position: relative;
+  background: var(--color-surface);
+  border-radius: var(--radius, 12px);
+}
+.gradient-border-enhanced::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--gradient-angle, 0deg),
+    var(--color-accent),
+    #a855f7,
+    #f43f5e,
+    #f97316,
+    var(--color-accent)
+  );
+  z-index: -1;
+  animation: gradient-rotate 4s linear infinite;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.gradient-border-enhanced:hover::before {
+  opacity: 1;
+}
+
+@keyframes gradient-rotate {
+  to { --gradient-angle: 360deg; }
+}
+
+@property --gradient-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* Holographic card shine enhanced */
+.holo-shine-enhanced {
+  position: relative;
+  overflow: hidden;
+}
+.holo-shine-enhanced::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.05) 45%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 55%,
+    transparent 60%
+  );
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+.holo-shine-enhanced:hover::after {
+  transform: translateX(100%);
+}
+
+/* Price change flash enhanced */
+.price-flash-up-enhanced {
+  animation: flash-green-enhanced 1.5s ease-out;
+}
+.price-flash-down-enhanced {
+  animation: flash-red-enhanced 1.5s ease-out;
+}
+
+@keyframes flash-green-enhanced {
+  0% { background-color: rgba(239, 68, 68, 0.3); }
+  100% { background-color: transparent; }
+}
+
+@keyframes flash-red-enhanced {
+  0% { background-color: rgba(248, 113, 113, 0.3); }
+  100% { background-color: transparent; }
+}
+
+/* Enhanced shimmer loading */
+.animate-shimmer-enhanced {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-elevated) 0%,
+    var(--color-surface-hover) 20%,
+    var(--color-surface-elevated) 40%,
+    var(--color-surface-elevated) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-sweep 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer-sweep {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Smooth number transitions */
+.number-transition-smooth {
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-light);
+}
+
+/* Retailer glow on hover */
+.retailer-glow-target:hover { box-shadow: 0 0 20px rgba(204, 0, 0, 0.2); }
+.retailer-glow-walmart:hover { box-shadow: 0 0 20px rgba(0, 113, 220, 0.2); }
+.retailer-glow-bestbuy:hover { box-shadow: 0 0 20px rgba(0, 70, 190, 0.2); }
+.retailer-glow-gamestop:hover { box-shadow: 0 0 20px rgba(226, 30, 38, 0.2); }
+.retailer-glow-pokemoncenter:hover { box-shadow: 0 0 20px rgba(255, 203, 5, 0.2); }
+.retailer-glow-costco:hover { box-shadow: 0 0 20px rgba(227, 24, 55, 0.2); }
+
+/* Live indicator ripple */
+.live-indicator {
+  position: relative;
+}
+.live-indicator::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--color-success);
+  animation: ripple-ring 2s ease-out infinite;
+}
+
+@keyframes ripple-ring {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+/* Stat card hover lift */
+.stat-card-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.stat-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(239, 68, 68, 0.05);
+}
+
+/* Glass card enhanced */
+.glass-card-enhanced {
+  background: rgba(14, 18, 35, 0.6);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(239, 68, 68, 0.08);
+  transition: all 0.3s ease;
+}
+.glass-card-enhanced:hover {
+  background: rgba(14, 18, 35, 0.8);
+  border-color: rgba(239, 68, 68, 0.15);
+}
+
+/* Animated text gradient */
+.animated-gradient-text {
+  background: linear-gradient(90deg, #f87171, #fb923c, #fbbf24, #f87171);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: animated-gradient-shift 4s ease infinite;
+}
+
+@keyframes animated-gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   PREMIUM AAA EFFECTS — High-End Gaming/Trading Platform
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Page header text glow ── */
+.page-header h1 {
+  text-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
+}
+
+/* ── 1. Animated particle background — enhanced with 3 orbs ── */
+.particles-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+}
+.particles-bg::before,
+.particles-bg::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  animation: drift 20s infinite ease-in-out;
+}
+.particles-bg::before {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.06) 0%, transparent 70%);
+  top: 5%;
+  left: 15%;
+}
+.particles-bg::after {
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.04) 0%, transparent 70%);
+  bottom: 15%;
+  right: 10%;
+  animation-delay: -10s;
+  animation-duration: 25s;
+}
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(60px, -40px) scale(1.15); }
+  50% { transform: translate(-30px, 50px) scale(0.85); }
+  75% { transform: translate(40px, 25px) scale(1.05); }
+}
+
+/* ── 2. Premium card 3D tilt on hover ── */
+.card-3d {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+.card-3d-inner {
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-style: preserve-3d;
+}
+.card-3d:hover .card-3d-inner {
+  transform: rotateX(2deg) rotateY(-3deg) translateY(-8px);
+  box-shadow:
+    20px 20px 60px rgba(0,0,0,0.4),
+    0 0 40px rgba(239, 68, 68, 0.1);
+}
+
+/* ── 3. Rainbow/holographic card effect for rare cards ── */
+.holo-rainbow {
+  position: relative;
+  overflow: hidden;
+}
+.holo-rainbow::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 0, 0, 0.1),
+    rgba(255, 127, 0, 0.1),
+    rgba(255, 255, 0, 0.1),
+    rgba(0, 255, 0, 0.1),
+    rgba(0, 0, 255, 0.1),
+    rgba(75, 0, 130, 0.1),
+    rgba(148, 0, 211, 0.1),
+    rgba(255, 0, 0, 0.1)
+  );
+  animation: holo-rotate 3s linear infinite;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.holo-rainbow:hover::before {
+  opacity: 1;
+}
+@keyframes holo-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ── 4. Neon glow text for headings ── */
+.text-glow {
+  text-shadow:
+    0 0 7px rgba(239, 68, 68, 0.3),
+    0 0 20px rgba(239, 68, 68, 0.15),
+    0 0 40px rgba(239, 68, 68, 0.08);
+}
+.text-glow-gold {
+  text-shadow:
+    0 0 7px rgba(251, 191, 36, 0.3),
+    0 0 20px rgba(251, 191, 36, 0.15),
+    0 0 40px rgba(251, 191, 36, 0.08);
+}
+.text-glow-green {
+  text-shadow:
+    0 0 7px rgba(239, 68, 68, 0.3),
+    0 0 20px rgba(239, 68, 68, 0.15);
+}
+
+/* ── 5. Animated border beam (Stripe-style) ── */
+.border-beam {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(239, 68, 68, 0.06);
+}
+.border-beam::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -50%;
+  width: 80px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #ef4444, transparent);
+  animation: beam-slide 3s ease-in-out infinite;
+}
+@keyframes beam-slide {
+  0% { left: -20%; }
+  100% { left: 120%; }
+}
+
+/* ── 6. Gradient mesh background for hero sections ── */
+.mesh-gradient {
+  background:
+    radial-gradient(at 20% 30%, rgba(239, 68, 68, 0.08) 0%, transparent 50%),
+    radial-gradient(at 80% 20%, rgba(251, 146, 60, 0.06) 0%, transparent 50%),
+    radial-gradient(at 50% 80%, rgba(239, 68, 68, 0.04) 0%, transparent 50%),
+    radial-gradient(at 10% 90%, rgba(251, 191, 36, 0.03) 0%, transparent 40%);
+}
+
+/* ── 7. Data visualization glow effects ── */
+.chart-glow svg .recharts-area { filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.2)); }
+.chart-glow svg .recharts-line { filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.3)); }
+
+.kpi-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #e8edf8 0%, #fca5a5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── 8. Premium button styles ── */
+.btn-premium {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(249, 115, 22, 0.1) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-premium:hover {
+  border-color: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.15), 0 8px 32px rgba(0,0,0,0.3);
+  transform: translateY(-1px);
+}
+.btn-premium::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
+}
+.btn-premium:hover::after {
+  transform: translateX(100%);
+}
+
+/* ── 9. Animated underline for nav links ── */
+.nav-link-premium {
+  position: relative;
+}
+.nav-link-premium::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #ef4444, #f97316);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateX(-50%);
+  border-radius: 1px;
+}
+.nav-link-premium:hover::after,
+.nav-link-premium.active::after {
+  width: 100%;
+}
+
+/* ── 10. Spotlight/cursor follow effect ── */
+.spotlight {
+  position: relative;
+  overflow: hidden;
+}
+.spotlight::before {
+  content: '';
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.06) 0%, transparent 70%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.spotlight:hover::before {
+  opacity: 1;
+}
+
+/* ── 11. Status indicator dots with animation ── */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  position: relative;
+}
+.status-dot-live {
+  background: var(--color-success);
+  box-shadow: 0 0 6px var(--color-success);
+}
+.status-dot-live::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-success);
+  animation: status-ping 1.5s ease-out infinite;
+}
+@keyframes status-ping {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+.status-dot-warning {
+  background: var(--color-warning);
+  box-shadow: 0 0 6px var(--color-warning);
+  animation: status-blink 2s ease-in-out infinite;
+}
+@keyframes status-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── 12. Image zoom on hover with frame ── */
+.img-zoom-frame {
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(239, 68, 68, 0.06);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.img-zoom-frame:hover {
+  border-color: rgba(239, 68, 68, 0.15);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 20px rgba(239, 68, 68, 0.08);
+}
+.img-zoom-frame img {
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.img-zoom-frame:hover img {
+  transform: scale(1.08);
+}
+
+/* ── 13. Animated counter (for numbers going up) ── */
+@property --num {
+  syntax: "<integer>";
+  initial-value: 0;
+  inherits: false;
+}
+.counter-animate {
+  animation: counter-up 2s ease-out forwards;
+  counter-reset: num var(--num);
+  font-variant-numeric: tabular-nums;
+}
+.counter-animate::after {
+  content: counter(num);
+}
+@keyframes counter-up {
+  from { --num: 0; }
+}
+
+/* ── 14. Rarity color coding for Pokemon cards ── */
+.rarity-common { border-left: 3px solid #6b7280; }
+.rarity-uncommon { border-left: 3px solid #60a5fa; }
+.rarity-rare { border-left: 3px solid #fbbf24; }
+.rarity-ultra-rare { border-left: 3px solid #a855f7; }
+.rarity-secret { border-left: 3px solid #f43f5e; }
+.rarity-illustration { border-left: 3px solid #34d399; }
+.rarity-sir {
+  border-left: 3px solid transparent;
+  border-image: linear-gradient(180deg, #f43f5e, #a855f7, #60a5fa) 1;
+}
+
+/* Rarity glow badges */
+.rarity-badge-sir {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.15), rgba(168, 85, 247, 0.15));
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  color: #c084fc;
+}
+.rarity-badge-ultra {
+  background: rgba(168, 85, 247, 0.1);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  color: #a78bfa;
+}
+.rarity-badge-illustration {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #34d399;
+}
+
+/* ── 15. Micro-interaction utilities ── */
+.hover-lift { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease; }
+.hover-lift:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
+
+.hover-scale { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.hover-scale:hover { transform: scale(1.03); }
+
+.hover-bright { transition: filter 0.3s ease; }
+.hover-bright:hover { filter: brightness(1.1); }
+
+.click-shrink:active { transform: scale(0.97); transition: transform 0.1s; }
+
+.reveal-up {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-up.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── 16. Table row premium styling ── */
+.table-row-premium {
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.04);
+}
+.table-row-premium:hover {
+  background: rgba(239, 68, 68, 0.03);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+/* ── 17. Skeleton loading with gradient wave ── */
+.skeleton-premium {
+  background: linear-gradient(
+    110deg,
+    var(--color-surface) 8%,
+    rgba(239, 68, 68, 0.04) 18%,
+    var(--color-surface) 33%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-wave 1.5s linear infinite;
+  border-radius: 8px;
+}
+@keyframes skeleton-wave {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   ENHANCED EFFECTS — Red/Pokeball Theme
+   ═══════════════════════════════════════════════════════ */
+
+/* ── 18. Pokeball-themed gradients ── */
+.gradient-pokeball {
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.06) 0%, transparent 50%, rgba(255, 255, 255, 0.02) 100%);
+}
+
+/* ── 19. Animated grid pattern background ── */
+.grid-pattern {
+  background-image:
+    linear-gradient(rgba(239, 68, 68, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(239, 68, 68, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: grid-drift 30s linear infinite;
+}
+@keyframes grid-drift {
+  0% { background-position: 0 0; }
+  100% { background-position: 60px 60px; }
+}
+
+/* ── 20. Enhanced glassmorphism with inner glow ── */
+.glass-premium {
+  background: rgba(10, 18, 40, 0.65);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* ── 21. Card hover with pokeball accent ── */
+.card-hover-red {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-hover-red:hover {
+  border-color: rgba(239, 68, 68, 0.15);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.3),
+    0 0 30px rgba(239, 68, 68, 0.06);
+  transform: translateY(-3px);
+}
+
+/* ── 22. Animated scanning line effect ── */
+.scan-line {
+  position: relative;
+  overflow: hidden;
+}
+.scan-line::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.4), transparent);
+  animation: scan 3s ease-in-out infinite;
+}
+@keyframes scan {
+  0%, 100% { top: 0; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* ── 23. Animated shine sweep for cards ── */
+.shine-sweep {
+  position: relative;
+  overflow: hidden;
+}
+.shine-sweep::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    transparent 40%,
+    rgba(255, 255, 255, 0.03) 45%,
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.03) 55%,
+    transparent 60%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: shine-sweep-anim 4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes shine-sweep-anim {
+  0%, 100% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+}
+
+/* ── 24. Glow text red variant ── */
+.text-glow-red {
+  text-shadow:
+    0 0 7px rgba(239, 68, 68, 0.3),
+    0 0 20px rgba(239, 68, 68, 0.15),
+    0 0 40px rgba(239, 68, 68, 0.08);
+}
+
+/* ── 25. Enhanced button glow effects ── */
+.btn-glow-red {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+  transition: all 0.3s ease;
+}
+.btn-glow-red:hover {
+  box-shadow: 0 0 35px rgba(239, 68, 68, 0.35);
+  transform: translateY(-1px);
+}
+.btn-glow-red::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
+}
+.btn-glow-red:hover::after {
+  transform: translateX(100%);
+}
+
+/* ── 26. Animated dot grid for backgrounds ── */
+.dots-pattern {
+  background-image: radial-gradient(rgba(239, 68, 68, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ── 27. Enhanced border beam with red accent ── */
+.border-beam-red {
+  position: relative;
+  overflow: hidden;
+}
+.border-beam-red::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -50%;
+  width: 80px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #ef4444, transparent);
+  animation: beam-slide 4s ease-in-out infinite;
+}
+
+/* ── 28. Pulsing border for active/important items ── */
+.border-pulse {
+  animation: border-pulse-anim 2s ease-in-out infinite;
+}
+@keyframes border-pulse-anim {
+  0%, 100% { border-color: rgba(239, 68, 68, 0.1); }
+  50% { border-color: rgba(239, 68, 68, 0.3); }
+}
+
+/* ── 29. Frosted glass panel ── */
+.frosted-panel {
+  background: rgba(10, 18, 40, 0.5);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1),
+    0 8px 32px rgba(0, 0, 0, 0.25);
+}
+
+/* ── 30. Smooth color transitions for price changes ── */
+.price-transition {
+  transition: color 0.6s ease, text-shadow 0.6s ease;
+}
+.price-up {
+  color: var(--color-success);
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+}
+.price-down {
+  color: var(--color-danger);
+  text-shadow: 0 0 10px rgba(248, 113, 113, 0.2);
 }

@@ -1,14 +1,12 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  TrendingUp, Package, DollarSign, BarChart3,
-  ChevronDown, Sparkles, Zap, Target, ArrowUpRight,
+  TrendingUp, Package, BarChart3,
+  Sparkles, Zap, Target,
 } from 'lucide-react'
 import { PageTransition } from '@/components/layout/PageTransition'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
-import { Progress } from '@/components/ui/Progress'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { staggerContainer, staggerItem } from '@/lib/animations'
 import { formatPrice } from '@/lib/utils'
@@ -72,11 +70,11 @@ function getRarityColor(rarity: string): string {
   if (rarity.includes('Illustration')) return '#a855f7'
   if (rarity.includes('Hyper') || rarity.includes('Gold')) return '#eab308'
   if (rarity.includes('Full Art')) return '#f97316'
-  if (rarity.includes('Ultra')) return '#3b82f6'
+  if (rarity.includes('Ultra')) return '#dc2626'
   if (rarity.includes('ACE')) return '#22d3ee'
   if (rarity.includes('Double')) return '#818cf8'
-  if (rarity.includes('Holo')) return '#60a5fa'
-  if (rarity.includes('Rare')) return '#34d399'
+  if (rarity.includes('Holo')) return '#ef4444'
+  if (rarity.includes('Rare')) return '#ef4444'
   if (rarity.includes('Uncommon')) return '#94a3b8'
   return '#64748b'
 }
@@ -341,7 +339,7 @@ export default function PackEV() {
                                 borderRadius: 12,
                                 fontSize: 12,
                               }}
-                              formatter={(value: number) => [`$${value.toFixed(3)}`, 'EV Contribution']}
+                              formatter={((value: number) => [`$${value.toFixed(3)}`, 'EV Contribution']) as any}
                               cursor={{ fill: 'rgba(96, 165, 250, 0.05)' }}
                             />
                             <Bar dataKey="ev" radius={[0, 6, 6, 0]}>

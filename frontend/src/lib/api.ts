@@ -56,7 +56,40 @@ export const api = {
       request<{ card: CardDetail; related: CardSearchResult[] }>(`/cards/${encodeURIComponent(cardId)}`),
     gradedPrices: (cardId: string) =>
       request<GradedPrices>(`/cards/${encodeURIComponent(cardId)}/graded-prices`),
+    gradedPricesStructured: (cardId: string) =>
+      request<GradedPricesStructured>(`/cards/${encodeURIComponent(cardId)}/graded-prices-structured`),
+    priceHistory: (cardId: string, days = 90) =>
+      request<{ card_id: string; days: number; data: PriceHistoryPoint[]; count: number }>(
+        `/cards/${encodeURIComponent(cardId)}/price-history?days=${days}`
+      ),
+    ebaySold: (cardId: string, limit = 10) =>
+      request<EbaySoldResult>(
+        `/cards/${encodeURIComponent(cardId)}/ebay-sold?limit=${limit}`
+      ),
   },
+
+  /* ── Sealed Products ── */
+  sealed: {
+    list: (setName?: string, productType?: string) => {
+      const params = new URLSearchParams()
+      if (setName) params.set('set_name', setName)
+      if (productType) params.set('product_type', productType)
+      const qs = params.toString()
+      return request<{ data: SealedProduct[]; count: number }>(
+        `/sealed${qs ? `?${qs}` : ''}`
+      )
+    },
+    get: (productId: number) =>
+      request<SealedProduct>(`/sealed/${productId}`),
+    priceHistory: (productId: number, days = 365) =>
+      request<{ sealed_product_id: number; days: number; data: PriceHistoryPoint[]; count: number }>(
+        `/sealed/${productId}/price-history?days=${days}`
+      ),
+  },
+
+  /* ── Trending ── */
+  trending: (limit = 20) =>
+    request<{ data: TrendingCard[]; count: number }>(`/trending?limit=${limit}`),
 
   /* ── Collection ── */
   collection: {
@@ -142,6 +175,36 @@ export const api = {
 
   /* ── Stats ── */
   stats: () => request<{ collections: Record<string, unknown>; alerts: Record<string, unknown> }>('/stats'),
+
+  /* ── Prices ── */
+  prices: {
+    cardHistory: (cardId: string, days: number = 90) =>
+      request<{ card_id: string; days: number; data: PriceHistoryPoint[]; count: number }>(
+        `/cards/${encodeURIComponent(cardId)}/price-history?days=${days}`
+      ),
+    gradedStructured: (cardId: string) =>
+      request<GradedPricesStructured>(`/cards/${encodeURIComponent(cardId)}/graded-prices-structured`),
+  },
+
+  /* ── Stock Scanner ── */
+  scan: {
+    all: (query: string, retailers?: string[]) =>
+      request<ScanResult>('/scan', {
+        method: 'POST',
+        body: JSON.stringify({ query, retailers }),
+      }),
+    retailer: (query: string, retailer: string) =>
+      request<RetailerScanResult>(`/scan/${retailer}`, {
+        method: 'POST',
+        body: JSON.stringify({ query }),
+      }),
+  },
+
+  /* ── Sync ── */
+  sync: {
+    triggerPriceSync: () =>
+      request<{ success: boolean }>('/sync/prices', { method: 'POST' }),
+  },
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -339,4 +402,99 @@ export interface AssistantResponse {
   tool_results?: Record<string, unknown>[]
   model?: string
   demo_mode?: boolean
+}
+
+/* ── Sealed Products ── */
+export interface SealedProduct {
+  id: number
+  name: string
+  set_name: string
+  product_type: string
+  msrp: number | null
+  current_price: number | null
+  release_date?: string
+  image_url?: string | null
+  notes?: string | null
+  [key: string]: unknown
+}
+
+/* ── Price History ── */
+export interface PriceHistoryPoint {
+  date: string
+  price: number
+}
+
+/* ── Trending Cards ── */
+export interface TrendingCard {
+  id: string
+  name: string
+  set_name?: string
+  set?: string
+  rarity?: string
+  price: number | null
+  change_7d?: number | null
+  change_30d?: number | null
+  image_url?: string | null
+  small_image_url?: string | null
+  [key: string]: unknown
+}
+
+/* ── Graded Prices Structured ── */
+export interface GradedPriceStructuredEntry {
+  grade: string
+  grade_label?: string | null
+  market: number | null
+  low: number | null
+  high: number | null
+  source?: string | null
+  updated_at?: string
+}
+
+export interface GradedPricesStructured {
+  [grader: string]: GradedPriceStructuredEntry[]
+}
+
+/* ── eBay Sold Listings ── */
+export interface EbaySoldListing {
+  title: string
+  price: number
+  currency: string
+  condition: string
+  image_url: string
+  item_url: string
+  item_id: string
+}
+
+export interface EbaySoldResult {
+  listings: EbaySoldListing[]
+  avg_price: number
+  median_price: number
+  low_price: number
+  high_price: number
+  count: number
+  query: string
+  fallback?: boolean
+  message?: string
+}
+
+/* ── Stock Scanner ── */
+export interface ScannedProduct {
+  name: string
+  retailer: string
+  retailer_id: string
+  price: number | null
+  in_stock: boolean
+}
+
+export interface RetailerScanResult {
+  retailer: string
+  retailer_id: string
+  products: ScannedProduct[]
+  error: string | null
+}
+
+export interface ScanResult {
+  query: string
+  results: RetailerScanResult[]
+  total_products: number
 }

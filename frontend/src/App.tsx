@@ -24,6 +24,7 @@ const Settings = lazy(() => import('./pages/Settings'))
 export default function App() {
   return (
     <Routes>
+      {/* All routes are public — advanced features coming soon for Locals Only holders */}
       <Route element={<AppShell />}>
         <Route path="/" element={<Suspense fallback={<LoadingScreen />}><Dashboard /></Suspense>} />
         <Route path="/stock" element={<Suspense fallback={<LoadingScreen />}><Stock /></Suspense>} />

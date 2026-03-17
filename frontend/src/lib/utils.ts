@@ -8,7 +8,8 @@ export function cn(...inputs: ClassValue[]) {
 export function formatPrice(value: number | string | null | undefined): string {
   if (value === null || value === undefined || value === '') return '??'
   const num = typeof value === 'string' ? parseFloat(value) : value
-  if (isNaN(num) || num === 0) return '??'
+  if (isNaN(num)) return '??'
+  if (num === 0) return '0.00'
   if (num >= 1000) return num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
   if (num >= 100) return num.toFixed(0)
   return num.toFixed(2)

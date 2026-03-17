@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@reown/appkit": "^1.8.19",
+    "@reown/appkit-adapter-wagmi": "^1.8.19",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/react-query": "^5.90.21",
     "@types/leaflet": "^1.9.21",
@@ -25,6 +27,8 @@
     "recharts": "^3.7.0",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.1",
+    "viem": "^2.47.0",
+    "wagmi": "^3.5.0",
     "zustand": "^5.0.11"
   },
   "devDependencies": {

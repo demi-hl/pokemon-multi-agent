@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Calendar, Clock, ExternalLink, AlertTriangle, CheckCircle,
+  Calendar, AlertTriangle, CheckCircle,
   MessageSquare, Tag, Package, TrendingUp, Star, Sparkles,
-  MapPin, ShoppingCart, ArrowUpRight, Filter,
+  MapPin,
 } from 'lucide-react'
 import { PageTransition } from '@/components/layout/PageTransition'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@/components/ui/Tabs'
 import RetailerBadge from '@/components/shared/RetailerBadge'
-import { staggerContainer, staggerItem, fadeInUp } from '@/lib/animations'
+import { staggerContainer, staggerItem } from '@/lib/animations'
 
 /* ═══════════════════════════════════════════════════════
    Comprehensive Drop Data
@@ -300,11 +300,11 @@ interface CalendarEvent {
 }
 
 const CALENDAR_EVENTS: CalendarEvent[] = [
-  { date: '2026-03-01', title: 'PE Blisters & Tins', type: 'restock', color: '#60a5fa' },
-  { date: '2026-03-07', title: 'Surging Sparks Reprint', type: 'restock', color: '#3b82f6' },
-  { date: '2026-03-14', title: 'Prismatic Evolutions Wave 3', type: 'restock', color: '#60a5fa' },
-  { date: '2026-03-21', title: 'Journey Together Pre-release', type: 'prerelease', color: '#22c55e' },
-  { date: '2026-03-28', title: 'Journey Together Release', type: 'new_set', color: '#22c55e' },
+  { date: '2026-03-01', title: 'PE Blisters & Tins', type: 'restock', color: '#ef4444' },
+  { date: '2026-03-07', title: 'Surging Sparks Reprint', type: 'restock', color: '#dc2626' },
+  { date: '2026-03-14', title: 'Prismatic Evolutions Wave 3', type: 'restock', color: '#ef4444' },
+  { date: '2026-03-21', title: 'Journey Together Pre-release', type: 'prerelease', color: '#ef4444' },
+  { date: '2026-03-28', title: 'Journey Together Release', type: 'new_set', color: '#ef4444' },
   { date: '2026-04-05', title: 'Eeveelution Collection (PC)', type: 'exclusive', color: '#ffcb05' },
   { date: '2026-05-23', title: 'SV09: Astral Crown', type: 'new_set', color: '#f97316' },
   { date: '2026-06-13', title: 'Destined Rivals', type: 'new_set', color: '#a855f7' },
