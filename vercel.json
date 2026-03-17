@@ -3,6 +3,7 @@
   "name": "poke-agent",
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
+  "functions": {},
   "routes": [
     { "src": "/api/(.*)", "dest": "https://pokemon-multi-agent.onrender.com/api/$1" },
     { "src": "/dashboard", "dest": "/index.html" },
