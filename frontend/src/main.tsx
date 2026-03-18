@@ -72,7 +72,7 @@ window.addEventListener('beforeunload', () => saveCachedQueries(queryClient))
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter basename="/dashboard">
+      <BrowserRouter>
         <ErrorBoundary>
           <App />
         </ErrorBoundary>

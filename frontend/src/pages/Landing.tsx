@@ -4,11 +4,10 @@
  */
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { useAccount } from 'wagmi'
 import {
-  Zap, BarChart3, Shield, Eye, Bot, TrendingUp,
+  Zap, Eye, Bot, TrendingUp,
   Search, Bell, Calculator, Sparkles, ArrowRight,
-  Globe, Users, Database, ChevronRight,
+  Globe, Database,
 } from 'lucide-react'
 
 const FEATURES = [
@@ -66,12 +65,10 @@ const STATS = [
   { label: 'Cards Tracked', value: '3,250+', icon: Database },
   { label: 'Sets Indexed', value: '171', icon: Globe },
   { label: 'Retailers Monitored', value: '9', icon: Eye },
-  { label: 'NFT Holders', value: '232', icon: Users },
 ]
 
 export default function Landing() {
   const navigate = useNavigate()
-  const { isConnected } = useAccount()
 
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden">
@@ -85,18 +82,6 @@ export default function Landing() {
       {/* ── Hero ── */}
       <section className="relative pt-20 pb-28 px-5 sm:px-8">
         <div className="max-w-5xl mx-auto text-center">
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/20 mb-8"
-          >
-            <Shield className="w-3.5 h-3.5 text-red-400" />
-            <span className="text-xs font-medium text-red-400">Token-Gated for Locals Only Holders</span>
-            <ChevronRight className="w-3 h-3 text-red-400/50" />
-          </motion.div>
-
           {/* Logo + Title */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -182,29 +167,15 @@ export default function Landing() {
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12"
           >
             <motion.button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/dashboard')}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               className="flex items-center gap-2.5 h-14 px-10 rounded-2xl text-base font-semibold bg-red-500 text-white hover:bg-red-400 shadow-xl shadow-red-500/25 hover:shadow-red-500/40 transition-all duration-300"
             >
               <Zap className="w-5 h-5" />
-              {isConnected ? 'Launch App' : 'Connect Wallet'}
+              Launch App
               <ArrowRight className="w-4 h-4" />
             </motion.button>
-
-            <a
-              href="https://drip.trade/collections/locals-only"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                className="flex items-center gap-2 h-14 px-10 rounded-2xl text-base font-medium bg-white/[0.06] border border-white/[0.1] text-foreground hover:bg-white/[0.1] hover:border-white/[0.15] transition-all duration-300"
-              >
-                Get a Locals Only NFT
-              </motion.button>
-            </a>
           </motion.div>
         </div>
       </section>
@@ -281,41 +252,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── How it works ── */}
-      <section className="relative py-24 px-5 sm:px-8 border-t border-white/[0.06]">
-        <div className="max-w-3xl mx-auto text-center">
-          <p className="text-xs font-medium tracking-[0.2em] uppercase text-red-400 mb-3">
-            Getting Started
-          </p>
-          <h2 className="text-3xl font-bold mb-14">Three steps to access</h2>
-
-          <div className="grid sm:grid-cols-3 gap-8">
-            {[
-              { step: '01', title: 'Get the NFT', desc: 'Acquire a Locals Only NFT on Drip.Trade' },
-              { step: '02', title: 'Connect Wallet', desc: 'Link your wallet holding the NFT' },
-              { step: '03', title: 'Start Trading', desc: 'Full access to all PokeAgent tools' },
-            ].map((item, i) => (
-              <motion.div
-                key={item.step}
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.15 }}
-                className="relative"
-              >
-                <div className="text-4xl font-bold text-red-500/20 mb-3 font-mono">{item.step}</div>
-                <h3 className="text-base font-semibold mb-1">{item.title}</h3>
-                <p className="text-sm text-muted-foreground/60">{item.desc}</p>
-                {/* Connector line */}
-                {i < 2 && (
-                  <div className="hidden sm:block absolute top-6 left-[calc(100%+8px)] w-[calc(100%-60px)] h-[1px] bg-gradient-to-r from-red-500/20 to-transparent" />
-                )}
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── Footer CTA ── */}
       <section className="relative py-20 px-5 sm:px-8 border-t border-white/[0.06]">
         <div className="max-w-2xl mx-auto text-center">
@@ -324,13 +260,13 @@ export default function Landing() {
             Join the exclusive community of Pokemon TCG collectors and investors.
           </p>
           <motion.button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/dashboard')}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             className="inline-flex items-center gap-2 h-13 px-10 rounded-2xl text-sm font-semibold bg-red-500 text-white hover:bg-red-400 shadow-xl shadow-red-500/25 hover:shadow-red-500/40 transition-all duration-300"
           >
             <Zap className="w-4 h-4" />
-            {isConnected ? 'Launch App' : 'Connect Wallet & Enter'}
+            Launch App
           </motion.button>
         </div>
       </section>

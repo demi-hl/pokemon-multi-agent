@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import AppShell from './components/layout/AppShell'
 import LoadingScreen from './components/shared/LoadingScreen'
+import Landing from './pages/Landing'
 
 // Lazy-loaded pages for code splitting
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -24,9 +25,12 @@ const Settings = lazy(() => import('./pages/Settings'))
 export default function App() {
   return (
     <Routes>
-      {/* All routes are public — advanced features coming soon for Locals Only holders */}
+      {/* Public landing page */}
+      <Route path="/" element={<Landing />} />
+
+      {/* App shell wraps all dashboard routes */}
       <Route element={<AppShell />}>
-        <Route path="/" element={<Suspense fallback={<LoadingScreen />}><Dashboard /></Suspense>} />
+        <Route path="/dashboard" element={<Suspense fallback={<LoadingScreen />}><Dashboard /></Suspense>} />
         <Route path="/stock" element={<Suspense fallback={<LoadingScreen />}><Stock /></Suspense>} />
         <Route path="/cards" element={<Suspense fallback={<LoadingScreen />}><Cards /></Suspense>} />
         <Route path="/cards/:cardId" element={<Suspense fallback={<LoadingScreen />}><CardDetail /></Suspense>} />
