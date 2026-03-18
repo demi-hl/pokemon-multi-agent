@@ -3,6 +3,9 @@ Flask API for Pokemon TCG Set Database UI.
 Run from project root: flask --app api.app run  (or python -m api.app)
 """
 import os
+import sys
+# Ensure repo root is in path (needed for Vercel serverless function context)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import time
 import hashlib

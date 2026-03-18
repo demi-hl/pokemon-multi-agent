@@ -20,7 +20,7 @@ try:
 
     app = _LazyApp()
 
-except ImportError:
+except Exception:
     # Pre-install detection fallback — no packages available yet
     def app(environ, start_response):
         start_response('200 OK', [('Content-type', 'text/plain')])
