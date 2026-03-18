@@ -67,6 +67,15 @@ const STATS = [
   { label: 'Retailers Monitored', value: '7', icon: Eye },
 ]
 
+const FEATURED_CARDS = [
+  { name: 'Charizard ex', set: 'Obsidian Flames', rarity: 'Double Rare', price: 28.50, change: +4.2, img: 'https://images.pokemontcg.io/sv3/215_hires.png' },
+  { name: 'Umbreon VMAX', set: 'Evolving Skies', rarity: 'Ultra Rare', price: 82.00, change: -1.8, img: 'https://images.pokemontcg.io/swsh7/215_hires.png' },
+  { name: 'Rayquaza VMAX', set: 'Evolving Skies', rarity: 'Ultra Rare', price: 48.75, change: +2.1, img: 'https://images.pokemontcg.io/swsh7/218_hires.png' },
+  { name: 'Mew VMAX', set: 'Fusion Strike', rarity: 'Ultra Rare', price: 24.99, change: +0.5, img: 'https://images.pokemontcg.io/swsh8/269_hires.png' },
+  { name: 'Pikachu VMAX', set: 'Crown Zenith', rarity: 'Ultra Rare', price: 31.00, change: -0.9, img: 'https://images.pokemontcg.io/swsh12pt5/188_hires.png' },
+  { name: 'Lugia V', set: 'Silver Tempest', rarity: 'Ultra Rare', price: 19.50, change: +3.3, img: 'https://images.pokemontcg.io/swsh11/186_hires.png' },
+]
+
 export default function Landing() {
   const navigate = useNavigate()
 
@@ -198,6 +207,53 @@ export default function Landing() {
                 <div>
                   <p className="text-xl font-bold text-foreground font-mono">{stat.value}</p>
                   <p className="text-xs text-muted-foreground/60">{stat.label}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Featured Cards ── */}
+      <section className="relative py-20 px-5 sm:px-8">
+        <div className="max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <p className="text-xs font-medium tracking-[0.2em] uppercase text-red-400 mb-3">Live Market Data</p>
+            <h2 className="text-3xl sm:text-4xl font-bold">Cards We're Tracking</h2>
+          </motion.div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {FEATURED_CARDS.map((card, i) => (
+              <motion.div
+                key={card.name}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.06 }}
+                className="group relative bg-surface/40 border border-white/[0.06] rounded-2xl p-3 hover:border-white/[0.14] hover:translate-y-[-4px] transition-all duration-300 cursor-default"
+              >
+                {/* Card image */}
+                <div className="relative mb-3 rounded-xl overflow-hidden bg-white/[0.04] aspect-[2.5/3.5]">
+                  <img
+                    src={card.img}
+                    alt={card.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+                </div>
+                {/* Info */}
+                <p className="text-xs font-semibold text-foreground truncate">{card.name}</p>
+                <p className="text-[10px] text-muted-foreground/50 truncate mb-2">{card.set}</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-foreground">${card.price.toFixed(2)}</span>
+                  <span className={`text-[10px] font-medium ${card.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {card.change >= 0 ? '+' : ''}{card.change}%
+                  </span>
                 </div>
               </motion.div>
             ))}
