@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/Badge'
 import { Progress } from '@/components/ui/Progress'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { staggerContainer, staggerItem, fadeInUp } from '@/lib/animations'
-import { useSets, usePullRates, useChaseCards } from '@/hooks/useApi'
+import { useSets, usePullRates, useChaseCards, useSetCards } from '@/hooks/useApi'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 const SERIES_OPTIONS = [
   { value: '', label: 'All Series' },
@@ -41,6 +42,8 @@ export default function Database() {
   const [series, setSeries] = useState('')
   const [selectedSet, setSelectedSet] = useState('')
   const [chaseFilter, setChaseFilter] = useState('All')
+  const [cardsPage, setCardsPage] = useState(1)
+  const [activeTab, setActiveTab] = useState<'all' | 'chase'>('all')
 
   // Fetch sets from API
   const { data: setsData, isLoading: setsLoading, isError: setsError } = useSets(series || undefined)
@@ -59,8 +62,14 @@ export default function Database() {
   const { data: pullRatesData, isLoading: pullRatesLoading } = usePullRates(selectedSet)
   const pullRates = pullRatesData?.data ?? []
 
+  // Fetch all cards (paginated)
+  const { data: allCardsData, isLoading: allCardsLoading } = useSetCards(selectedSet, cardsPage, 60)
+  const allCards = allCardsData?.data ?? []
+  const totalPages = allCardsData?.pages ?? 1
+  const totalCards = allCardsData?.total ?? 0
+
   // Fetch chase cards for selected set
-  const { data: chaseData, isLoading: chaseLoading } = useChaseCards(selectedSet, undefined, 24)
+  const { data: chaseData, isLoading: chaseLoading } = useChaseCards(selectedSet, undefined, 100)
   const chaseCards = chaseData?.data ?? []
 
   // Filter chase cards by rarity tab
@@ -108,7 +117,7 @@ export default function Database() {
                 label="Set"
                 options={setOptions}
                 value={selectedSet}
-                onChange={(e) => setSelectedSet(e.target.value)}
+                onChange={(e) => { setSelectedSet(e.target.value); setCardsPage(1); setActiveTab('all') }}
                 placeholder="Select a set..."
               />
             )}
@@ -218,71 +227,170 @@ export default function Database() {
           </Card>
         )}
 
-        {/* Chase Cards Grid */}
+        {/* Cards Section — tabbed All / Chase */}
         {selectedSet && (
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Chase Cards</h2>
-            <div className="flex gap-2 flex-wrap">
-              {CHASE_FILTER_TABS.map((tab) => (
+            {/* Tab bar */}
+            <div className="flex items-center gap-1 border-b border-border pb-0">
+              {(['all', 'chase'] as const).map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => setChaseFilter(tab)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                    chaseFilter === tab
-                      ? 'bg-accent text-white'
-                      : 'bg-surface-elevated text-muted hover:text-foreground'
+                  onClick={() => { setActiveTab(tab); if (tab === 'all') setCardsPage(1) }}
+                  className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                    activeTab === tab
+                      ? 'border-accent text-foreground'
+                      : 'border-transparent text-muted hover:text-foreground'
                   }`}
                 >
-                  {tab}
+                  {tab === 'all' ? `All Cards${totalCards ? ` (${totalCards})` : ''}` : `Chase Cards${chaseCards.length ? ` (${chaseCards.length})` : ''}`}
                 </button>
               ))}
             </div>
 
-            {chaseLoading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="space-y-2">
-                    <Skeleton className="aspect-[3/4] w-full rounded-xl" />
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                  </div>
-                ))}
-              </div>
-            ) : filteredChaseCards.length > 0 ? (
-              <motion.div
-                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
-                variants={staggerContainer}
-                initial="initial"
-                animate="animate"
-              >
-                {filteredChaseCards.map((card) => (
-                  <motion.div key={card.id || card.name} variants={staggerItem}>
-                    <Card hover className="overflow-hidden">
-                      <div className="aspect-[3/4] bg-gradient-to-br from-accent/20 via-surface-elevated to-accent/5 relative overflow-hidden">
-                        {card.image_url ? (
-                          <img
-                            src={card.image_url}
-                            alt={card.name}
-                            className="absolute inset-0 w-full h-full object-contain"
-                            loading="lazy"
-                          />
-                        ) : null}
+            {/* ── All Cards tab ── */}
+            {activeTab === 'all' && (
+              <>
+                {allCardsLoading ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <div key={i} className="space-y-2">
+                        <Skeleton className="aspect-[3/4] w-full rounded-xl" />
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
                       </div>
-                      <CardContent className="p-3 space-y-1.5">
-                        <p className="text-sm font-medium text-foreground truncate">{card.name}</p>
-                        <Badge variant={getRarityVariant(card.rarity)}>{card.rarity}</Badge>
-                        {card.price != null && (
-                          <p className="text-lg font-bold font-mono-numbers text-accent">
-                            ${typeof card.price === 'number' ? card.price.toFixed(2) : card.price}
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
+                    ))}
+                  </div>
+                ) : allCards.length > 0 ? (
+                  <>
+                    <motion.div
+                      key={`page-${cardsPage}`}
+                      className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
+                      variants={staggerContainer}
+                      initial="initial"
+                      animate="animate"
+                    >
+                      {allCards.map((card) => (
+                        <motion.div key={card.id} variants={staggerItem}>
+                          <Card hover className="overflow-hidden">
+                            <div className="aspect-[3/4] bg-gradient-to-br from-surface-elevated to-surface relative overflow-hidden">
+                              {card.image_url || card.small_image_url ? (
+                                <img
+                                  src={card.small_image_url ?? card.image_url}
+                                  alt={card.name}
+                                  className="absolute inset-0 w-full h-full object-contain"
+                                  loading="lazy"
+                                />
+                              ) : null}
+                            </div>
+                            <CardContent className="p-3 space-y-1">
+                              <p className="text-sm font-medium text-foreground truncate">{card.name}</p>
+                              {card.rarity && <Badge variant={getRarityVariant(card.rarity)}>{card.rarity}</Badge>}
+                              {card.tcgplayer_market != null && (
+                                <p className="text-base font-bold font-mono-numbers text-accent">
+                                  ${card.tcgplayer_market.toFixed(2)}
+                                </p>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      ))}
+                    </motion.div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-center gap-3 pt-2">
+                        <button
+                          onClick={() => setCardsPage((p) => Math.max(1, p - 1))}
+                          disabled={cardsPage === 1}
+                          className="flex items-center justify-center h-9 w-9 rounded-lg bg-surface-elevated border border-border text-muted hover:text-foreground disabled:opacity-40 transition-colors"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </button>
+                        <span className="text-sm text-muted">
+                          Page <span className="text-foreground font-medium">{cardsPage}</span> of {totalPages}
+                        </span>
+                        <button
+                          onClick={() => setCardsPage((p) => Math.min(totalPages, p + 1))}
+                          disabled={cardsPage === totalPages}
+                          className="flex items-center justify-center h-9 w-9 rounded-lg bg-surface-elevated border border-border text-muted hover:text-foreground disabled:opacity-40 transition-colors"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted text-center py-8">No cards found for this set</p>
+                )}
+              </>
+            )}
+
+            {/* ── Chase Cards tab ── */}
+            {activeTab === 'chase' && (
+              <>
+                <div className="flex gap-2 flex-wrap">
+                  {CHASE_FILTER_TABS.map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setChaseFilter(tab)}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                        chaseFilter === tab
+                          ? 'bg-accent text-white'
+                          : 'bg-surface-elevated text-muted hover:text-foreground'
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+
+                {chaseLoading ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className="space-y-2">
+                        <Skeleton className="aspect-[3/4] w-full rounded-xl" />
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                    ))}
+                  </div>
+                ) : filteredChaseCards.length > 0 ? (
+                  <motion.div
+                    className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
+                    variants={staggerContainer}
+                    initial="initial"
+                    animate="animate"
+                  >
+                    {filteredChaseCards.map((card) => (
+                      <motion.div key={card.id || card.name} variants={staggerItem}>
+                        <Card hover className="overflow-hidden">
+                          <div className="aspect-[3/4] bg-gradient-to-br from-accent/20 via-surface-elevated to-accent/5 relative overflow-hidden">
+                            {card.image_url ? (
+                              <img
+                                src={card.image_url}
+                                alt={card.name}
+                                className="absolute inset-0 w-full h-full object-contain"
+                                loading="lazy"
+                              />
+                            ) : null}
+                          </div>
+                          <CardContent className="p-3 space-y-1.5">
+                            <p className="text-sm font-medium text-foreground truncate">{card.name}</p>
+                            <Badge variant={getRarityVariant(card.rarity)}>{card.rarity}</Badge>
+                            {card.price != null && (
+                              <p className="text-lg font-bold font-mono-numbers text-accent">
+                                ${typeof card.price === 'number' ? card.price.toFixed(2) : card.price}
+                              </p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ))}
                   </motion.div>
-                ))}
-              </motion.div>
-            ) : (
-              <p className="text-sm text-muted text-center py-8">No chase cards found for this filter</p>
+                ) : (
+                  <p className="text-sm text-muted text-center py-8">No chase cards found for this filter</p>
+                )}
+              </>
             )}
           </div>
         )}

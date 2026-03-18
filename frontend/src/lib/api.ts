@@ -39,6 +39,12 @@ export const api = {
         `/sets/${encodeURIComponent(setId)}/chase-cards${qs ? `?${qs}` : ''}`
       )
     },
+    cards: (setId: string, page = 1, limit = 60) => {
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) })
+      return request<{ data: SetCardItem[]; set_id: string; total: number; page: number; pages: number; limit: number }>(
+        `/sets/${encodeURIComponent(setId)}/cards?${params}`
+      )
+    },
   },
 
   /* ── Cards ── */
@@ -239,6 +245,18 @@ export interface ChaseCard {
   image_url?: string
   price?: number
   [key: string]: unknown
+}
+
+export interface SetCardItem {
+  id: string
+  set_id: string
+  name: string
+  rarity?: string
+  supertype?: string
+  subtype?: string
+  image_url?: string
+  small_image_url?: string
+  tcgplayer_market?: number | null
 }
 
 export interface CardSearchResult {

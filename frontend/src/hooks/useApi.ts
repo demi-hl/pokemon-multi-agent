@@ -4,7 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import type { AddCollectionBody, CreateAlertBody, AgentSettings, ChatMessage } from '@/lib/api'
+import type { AddCollectionBody, CreateAlertBody, AgentSettings, ChatMessage, SetCardItem } from '@/lib/api'
 
 /* ── Sets (stable data — long cache) ── */
 export function useSets(series?: string) {
@@ -45,6 +45,19 @@ export function useChaseCards(setId: string, rarity?: string, limit = 24) {
     gcTime: 30 * 60_000,
   })
 }
+
+export function useSetCards(setId: string, page = 1, limit = 60) {
+  return useQuery({
+    queryKey: ['setCards', setId, page, limit],
+    queryFn: () => api.sets.cards(setId, page, limit),
+    enabled: !!setId,
+    staleTime: 10 * 60_000,
+    gcTime: 60 * 60_000,
+    placeholderData: (prev) => prev,
+  })
+}
+// Re-export SetCardItem for convenience
+export type { SetCardItem }
 
 /* ── Cards ── */
 export function useCardSearch(query: string, opts?: { set?: string; rarity?: string; limit?: number }) {
