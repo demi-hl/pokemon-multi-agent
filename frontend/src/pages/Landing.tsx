@@ -62,9 +62,9 @@ const FEATURES = [
 ]
 
 const STATS = [
-  { label: 'Cards Tracked', value: '3,250+', icon: Database },
+  { label: 'Cards Tracked', value: '2,414', icon: Database },
   { label: 'Sets Indexed', value: '171', icon: Globe },
-  { label: 'Retailers Monitored', value: '9', icon: Eye },
+  { label: 'Retailers Monitored', value: '7', icon: Eye },
 ]
 
 export default function Landing() {
@@ -257,7 +257,7 @@ export default function Landing() {
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to level up?</h2>
           <p className="text-sm text-muted-foreground/60 mb-10 max-w-md mx-auto">
-            Join the exclusive community of Pokemon TCG collectors and investors.
+            Real-time stock tracking, price intelligence, and AI agents — all in one platform.
           </p>
           <motion.button
             onClick={() => navigate('/dashboard')}
