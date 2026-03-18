@@ -64,7 +64,7 @@ const FEATURES = [
 const STATS = [
   { label: 'Cards Tracked', value: '2,414', icon: Database },
   { label: 'Sets Indexed', value: '171', icon: Globe },
-  { label: 'Card Analytics', value: '18,500+', icon: BarChart3 },
+  { label: 'Card Analytics', value: '130,170+', icon: BarChart3 },
   { label: 'Retailers Monitored', value: '7', icon: Eye },
 ]
 
